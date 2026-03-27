@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Auth ─────────────────────────────────────────────────
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         String      @default("SALES") // "ADMIN" | "SALES"
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  quotations   Quotation[]
+}
+
+// ─── Products ─────────────────────────────────────────────
+model Product {
+  id             String          @id @default(cuid())
+  nameTh         String
+  nameEn         String?
+  unit           String
+  pricePerUnit   Float
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  quotationItems QuotationItem[]
+}
+
+// ─── Company Settings ──────────────────────────────────────
+model Company {
+  id        String   @id @default(cuid())
+  nameTh    String   @default("บริษัท เบลสมี ท็อปปิ้ง จำกัด")
+  nameEn    String?
+  address   String   @default("")
+  taxId     String   @default("")
+  phone     String   @default("")
+  email     String   @default("")
+  logoPath  String?
+  termsText String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Clients ───────────────────────────────────────────────
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  address       String?
+  taxId         String?
+  phone         String?
+  email         String?
+  contactPerson String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── QT Numbering sequence ─────────────────────────────────
+model QTSequence {
+  id      String @id @default(cuid())
+  year    Int    @unique
+  lastSeq Int    @default(0)
+}
+
+// ─── Quotation ─────────────────────────────────────────────
+model Quotation {
+  id              String  @id @default(cuid())
+  qtNumber        String  @unique
+  status          String  @default("DRAFT") // DRAFT | SENT | ACCEPTED | REJECTED | EXPIRED
+  createdById     String
+  createdBy       User    @relation(fields: [createdById], references: [id])
+
+  customerName    String
+  customerAddress String?
+  customerTaxId   String?
+  customerPhone   String?
+  customerEmail   String?
+  customerContact String?
+
+  issueDate    DateTime @default(now())
+  validUntil   DateTime
+  deliveryDate DateTime?
+
+  subtotal   Float  @default(0)
+  vatRate    Float  @default(7)
+  vatAmount  Float  @default(0)
+  grandTotal Float  @default(0)
+  currency   String @default("THB")
+
+  notes         String?
+  termsSnapshot String?
+  pdfPath       String?
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  items     QuotationItem[]
+}
+
+// ─── Quotation Line Items ───────────────────────────────────
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id])
+
+  productNameTh String
+  productNameEn String?
+  unit          String
+  quantity      Float
+  unitPrice     Float
+  lineTotal     Float
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
