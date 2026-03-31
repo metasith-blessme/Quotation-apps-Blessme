@@ -16,6 +16,7 @@ model User {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   quotations   Quotation[]
+  invoices     Invoice[]
 }
 
 // ─── Products ─────────────────────────────────────────────
@@ -29,6 +30,7 @@ model Product {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   quotationItems QuotationItem[]
+  invoiceItems   InvoiceItem[]
 }
 
 // ─── Company Settings ──────────────────────────────────────
@@ -108,6 +110,70 @@ model QuotationItem {
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   productId   String?
   product     Product?  @relation(fields: [productId], references: [id])
+
+  productNameTh String
+  productNameEn String?
+  unit          String
+  quantity      Float
+  unitPrice     Float
+  lineTotal     Float
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── INV Numbering sequence ────────────────────────────────
+model INVSequence {
+  id      String @id @default(cuid())
+  year    Int    @unique
+  lastSeq Int    @default(0)
+}
+
+// ─── Invoice ───────────────────────────────────────────────
+model Invoice {
+  id              String  @id @default(cuid())
+  invNumber       String  @unique
+  status          String  @default("UNPAID") // UNPAID | PAID | OVERDUE | CANCELLED
+  createdById     String
+  createdBy       User    @relation(fields: [createdById], references: [id])
+
+  quotationId     String? @unique
+  quotationNumber String?
+
+  customerName    String
+  customerAddress String?
+  customerTaxId   String?
+  customerPhone   String?
+  customerEmail   String?
+  customerContact String?
+
+  issueDate    DateTime @default(now())
+  dueDate      DateTime?
+  deliveryDate DateTime?
+
+  subtotal   Float  @default(0)
+  vatRate    Float  @default(7)
+  vatAmount  Float  @default(0)
+  grandTotal Float  @default(0)
+  currency   String @default("THB")
+
+  notes         String?
+  termsSnapshot String?
+  pdfPath       String?
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  items     InvoiceItem[]
+}
+
+// ─── Invoice Line Items ─────────────────────────────────────
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
 
   productNameTh String
   productNameEn String?

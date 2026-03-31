@@ -5,51 +5,51 @@ import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
 const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "อนุมัติ",
-  REJECTED: "ปฏิเสธ",
-  EXPIRED: "หมดอายุ",
+  UNPAID: "ค้างชำระ",
+  PAID: "ชำระแล้ว",
+  OVERDUE: "เกินกำหนด",
+  CANCELLED: "ยกเลิก",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  SENT: "bg-blue-100 text-blue-700",
-  ACCEPTED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
-  EXPIRED: "bg-orange-100 text-orange-700",
+  UNPAID: "bg-orange-100 text-orange-700",
+  PAID: "bg-green-100 text-green-700",
+  OVERDUE: "bg-red-100 text-red-700",
+  CANCELLED: "bg-gray-100 text-gray-600",
 };
 
-interface Quotation {
+interface Invoice {
   id: string;
-  qtNumber: string;
+  invNumber: string;
+  quotationNumber?: string | null;
   customerName: string;
   issueDate: string | Date;
-  validUntil: string | Date;
+  dueDate?: string | Date | null;
   grandTotal: number;
   status: string;
   createdBy: { name: string };
 }
 
 interface Props {
-  quotations: Quotation[];
-  counts: { total: number; draft: number; sent: number; accepted: number };
+  invoices: Invoice[];
+  counts: { total: number; unpaid: number; paid: number; cancelled: number };
 }
 
-export default function DashboardClient({ quotations, counts }: Props) {
+export default function InvoicesClient({ invoices, counts }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const filtered = useMemo(() => {
-    return quotations.filter((q) => {
+    return invoices.filter((i) => {
       const matchesSearch =
         search === "" ||
-        q.customerName.toLowerCase().includes(search.toLowerCase()) ||
-        q.qtNumber.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "ALL" || q.status === statusFilter;
+        i.customerName.toLowerCase().includes(search.toLowerCase()) ||
+        i.invNumber.toLowerCase().includes(search.toLowerCase()) ||
+        (i.quotationNumber?.toLowerCase().includes(search.toLowerCase()) ?? false);
+      const matchesStatus = statusFilter === "ALL" || i.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [quotations, search, statusFilter]);
+  }, [invoices, search, statusFilter]);
 
   return (
     <>
@@ -57,9 +57,9 @@ export default function DashboardClient({ quotations, counts }: Props) {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "ทั้งหมด", value: counts.total, color: "text-gray-700" },
-          { label: "ร่าง", value: counts.draft, color: "text-gray-500" },
-          { label: "ส่งแล้ว", value: counts.sent, color: "text-blue-600" },
-          { label: "อนุมัติ", value: counts.accepted, color: "text-green-600" },
+          { label: "ค้างชำระ", value: counts.unpaid, color: "text-orange-600" },
+          { label: "ชำระแล้ว", value: counts.paid, color: "text-green-600" },
+          { label: "ยกเลิก", value: counts.cancelled, color: "text-gray-500" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
@@ -72,7 +72,7 @@ export default function DashboardClient({ quotations, counts }: Props) {
       <div className="flex gap-3 mb-4">
         <input
           type="text"
-          placeholder="ค้นหาชื่อลูกค้า หรือเลขที่ใบเสนอราคา..."
+          placeholder="ค้นหาชื่อลูกค้า, เลขที่ใบแจ้งหนี้ หรือเลขที่ใบเสนอราคา..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -83,11 +83,10 @@ export default function DashboardClient({ quotations, counts }: Props) {
           className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
         >
           <option value="ALL">ทุกสถานะ</option>
-          <option value="DRAFT">ร่าง</option>
-          <option value="SENT">ส่งแล้ว</option>
-          <option value="ACCEPTED">อนุมัติ</option>
-          <option value="REJECTED">ปฏิเสธ</option>
-          <option value="EXPIRED">หมดอายุ</option>
+          <option value="UNPAID">ค้างชำระ</option>
+          <option value="PAID">ชำระแล้ว</option>
+          <option value="OVERDUE">เกินกำหนด</option>
+          <option value="CANCELLED">ยกเลิก</option>
         </select>
       </div>
 
@@ -95,12 +94,12 @@ export default function DashboardClient({ quotations, counts }: Props) {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">📄</p>
+            <p className="text-4xl mb-3">💰</p>
             <p className="font-medium">
-              {quotations.length === 0 ? "ยังไม่มีใบเสนอราคา" : "ไม่พบใบเสนอราคาที่ค้นหา"}
+              {invoices.length === 0 ? "ยังไม่มีใบแจ้งหนี้" : "ไม่พบใบแจ้งหนี้ที่ค้นหา"}
             </p>
-            {quotations.length === 0 && (
-              <p className="text-sm mt-1">กดปุ่ม &quot;สร้างใบเสนอราคา&quot; เพื่อเริ่มต้น</p>
+            {invoices.length === 0 && (
+              <p className="text-sm mt-1">ออกใบแจ้งหนี้จากหน้า &quot;ใบเสนอราคา&quot;</p>
             )}
           </div>
         ) : (
@@ -109,33 +108,34 @@ export default function DashboardClient({ quotations, counts }: Props) {
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">เลขที่ / No</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ลูกค้า / Customer</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">ใบเสนอราคา / QT</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">วันที่ / Date</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">ใช้ได้ถึง / Valid Until</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">ครบกำหนด / Due</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">ยอดรวม / Total</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">สถานะ / Status</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">การดำเนินการ / Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((q) => (
-                <tr key={q.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-mono font-medium text-gray-900">{q.qtNumber}</td>
-                  <td className="px-4 py-3 text-gray-700">{q.customerName}</td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(q.issueDate)}</td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(q.validUntil)}</td>
+              {filtered.map((i) => (
+                <tr key={i.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 font-mono font-medium text-gray-900">{i.invNumber}</td>
+                  <td className="px-4 py-3 text-gray-700">{i.customerName}</td>
+                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">{i.quotationNumber || "-"}</td>
+                  <td className="px-4 py-3 text-gray-500">{formatDate(i.issueDate)}</td>
+                  <td className="px-4 py-3 text-gray-500">{i.dueDate ? formatDate(i.dueDate) : "-"}</td>
                   <td className="px-4 py-3 text-right font-medium text-gray-900">
-                    ฿{formatCurrency(q.grandTotal)}
+                    ฿{formatCurrency(i.grandTotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[q.status]}`}>
-                      {STATUS_LABELS[q.status]}
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[i.status]}`}>
+                      {STATUS_LABELS[i.status]}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
-                      <Link href={`/quotations/${q.id}`} className="text-xs text-blue-600 hover:underline">ดู</Link>
-                      <Link href={`/quotations/${q.id}/edit`} className="text-xs text-gray-600 hover:underline">แก้ไข</Link>
-                      <a href={`/api/quotations/${q.id}/pdf`} target="_blank" className="text-xs text-green-600 hover:underline">PDF</a>
+                      <Link href={`/invoices/${i.id}`} className="text-xs text-blue-600 hover:underline">ดู</Link>
+                      <a href={`/api/invoices/${i.id}/pdf`} target="_blank" className="text-xs text-green-600 hover:underline">PDF</a>
                     </div>
                   </td>
                 </tr>

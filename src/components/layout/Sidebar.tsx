@@ -7,25 +7,31 @@ import { useSession } from "next-auth/react";
 const navItems = [
   {
     href: "/dashboard",
-    label: "ใบเสนอราคา",
+    label: "ใบเสนอราคา / Quotations",
     icon: "📄",
     adminOnly: false,
   },
   {
+    href: "/invoices",
+    label: "ใบแจ้งหนี้ / Invoices",
+    icon: "💰",
+    adminOnly: false,
+  },
+  {
     href: "/clients",
-    label: "จัดการลูกค้า",
+    label: "จัดการลูกค้า / Clients",
     icon: "👥",
     adminOnly: false,
   },
   {
     href: "/products",
-    label: "จัดการสินค้า",
+    label: "จัดการสินค้า / Products",
     icon: "📦",
     adminOnly: true,
   },
   {
     href: "/settings",
-    label: "ตั้งค่าบริษัท",
+    label: "ตั้งค่าบริษัท / Settings",
     icon: "⚙️",
     adminOnly: true,
   },

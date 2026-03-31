@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   companyBlock: { flex: 1, paddingLeft: 12 },
   companyName: { fontSize: 13, fontWeight: "bold", color: "#16a34a", marginBottom: 2, paddingRight: 20 },
   companyDetail: { fontSize: 9, color: "#6b7280", lineHeight: 1.4, paddingRight: 20 },
-  qtTitle: { fontSize: 16, fontWeight: "bold", textAlign: "center", color: "#111827", marginBottom: 12 },
+  invTitle: { fontSize: 16, fontWeight: "bold", textAlign: "center", color: "#111827", marginBottom: 12 },
   infoRow: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 12 },
   infoGrid: { width: 200 },
   infoLine: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3 },
@@ -77,7 +77,7 @@ function fmtDate(d: Date | string) {
   return new Intl.DateTimeFormat("th-TH", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
 }
 
-interface QuotationItem {
+interface InvoiceItem {
   productNameTh: string;
   productNameEn?: string | null;
   unit: string;
@@ -86,10 +86,10 @@ interface QuotationItem {
   lineTotal: number;
 }
 
-interface Quotation {
-  qtNumber: string;
+interface Invoice {
+  invNumber: string;
   issueDate: Date | string;
-  validUntil: Date | string;
+  dueDate?: Date | string | null;
   customerName: string;
   customerAddress?: string | null;
   customerTaxId?: string | null;
@@ -101,7 +101,7 @@ interface Quotation {
   grandTotal: number;
   notes?: string | null;
   termsSnapshot?: string | null;
-  items: QuotationItem[];
+  items: InvoiceItem[];
 }
 
 interface Company {
@@ -115,11 +115,11 @@ interface Company {
 }
 
 interface Props {
-  quotation: Quotation;
+  invoice: Invoice;
   company: Company;
 }
 
-export function QuotationPDFDocument({ quotation, company }: Props) {
+export function InvoicePDFDocument({ invoice, company }: Props) {
   const logoSrc = company.logoPath
     ? path.join(process.cwd(), "public", company.logoPath)
     : null;
@@ -143,34 +143,36 @@ export function QuotationPDFDocument({ quotation, company }: Props) {
           </View>
         </View>
 
-        {/* QT Title + Info */}
-        <Text style={styles.qtTitle}>ใบเสนอราคา / QUOTATION</Text>
+        {/* Invoice Title + Info */}
+        <Text style={styles.invTitle}>ใบแจ้งหนี้ / INVOICE</Text>
         <View style={styles.infoRow}>
           <View style={styles.infoGrid}>
             <View style={styles.infoLine}>
               <Text style={styles.infoLabel}>เลขที่ / No:</Text>
-              <Text style={styles.infoValue}>{quotation.qtNumber}</Text>
+              <Text style={styles.infoValue}>{invoice.invNumber}</Text>
             </View>
             <View style={styles.infoLine}>
               <Text style={styles.infoLabel}>วันที่ / Date:</Text>
-              <Text style={styles.infoValue}>{fmtDate(quotation.issueDate)}</Text>
+              <Text style={styles.infoValue}>{fmtDate(invoice.issueDate)}</Text>
             </View>
-            <View style={styles.infoLine}>
-              <Text style={styles.infoLabel}>ใช้ได้ถึง / Valid Until:</Text>
-              <Text style={styles.infoValue}>{fmtDate(quotation.validUntil)}</Text>
-            </View>
+            {invoice.dueDate && (
+              <View style={styles.infoLine}>
+                <Text style={styles.infoLabel}>ครบกำหนด / Due Date:</Text>
+                <Text style={styles.infoValue}>{fmtDate(invoice.dueDate)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Customer */}
         <View style={styles.customerSection}>
           <Text style={styles.sectionLabel}>เรียน / To</Text>
-          <Text style={styles.customerName}>{quotation.customerName} </Text>
-          {quotation.customerAddress && <Text style={styles.customerDetail}>{quotation.customerAddress} </Text>}
+          <Text style={styles.customerName}>{invoice.customerName} </Text>
+          {invoice.customerAddress && <Text style={styles.customerDetail}>{invoice.customerAddress} </Text>}
           <Text style={styles.customerDetail}>
-            {quotation.customerTaxId && `เลขภาษี / Tax ID: ${quotation.customerTaxId}   `}
-            {quotation.customerPhone && `โทร / Tel: ${quotation.customerPhone}   `}
-            {quotation.customerContact && `ผู้ติดต่อ / Contact: ${quotation.customerContact} `}
+            {invoice.customerTaxId && `เลขภาษี / Tax ID: ${invoice.customerTaxId}   `}
+            {invoice.customerPhone && `โทร / Tel: ${invoice.customerPhone}   `}
+            {invoice.customerContact && `ผู้ติดต่อ / Contact: ${invoice.customerContact} `}
           </Text>
         </View>
 
@@ -184,7 +186,7 @@ export function QuotationPDFDocument({ quotation, company }: Props) {
             <Text style={[styles.colPrice, styles.headerText]}>ราคา/หน่วย / Price</Text>
             <Text style={[styles.colTotal, styles.headerText]}>รวม / Total</Text>
           </View>
-          {quotation.items.map((item, i) => (
+          {invoice.items.map((item, i) => (
             <View key={i} style={styles.tableRow}>
               <Text style={styles.colNo}>{i + 1}</Text>
               <View style={styles.colProduct}>
@@ -204,32 +206,32 @@ export function QuotationPDFDocument({ quotation, company }: Props) {
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>ราคาก่อนภาษี / Subtotal</Text>
-              <Text style={styles.totalValue}>฿{fmt(quotation.subtotal)}</Text>
+              <Text style={styles.totalValue}>฿{fmt(invoice.subtotal)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>ภาษีมูลค่าเพิ่ม / VAT {quotation.vatRate}%</Text>
-              <Text style={styles.totalValue}>฿{fmt(quotation.vatAmount)}</Text>
+              <Text style={styles.totalLabel}>ภาษีมูลค่าเพิ่ม / VAT {invoice.vatRate}%</Text>
+              <Text style={styles.totalValue}>฿{fmt(invoice.vatAmount)}</Text>
             </View>
             <View style={styles.grandTotalRow}>
               <Text style={styles.grandTotalLabel}>รวมทั้งสิ้น / Grand Total</Text>
-              <Text style={styles.grandTotalValue}>฿{fmt(quotation.grandTotal)}</Text>
+              <Text style={styles.grandTotalValue}>฿{fmt(invoice.grandTotal)}</Text>
             </View>
           </View>
         </View>
 
         {/* Notes & Terms */}
-        {(quotation.notes || quotation.termsSnapshot) && (
+        {(invoice.notes || invoice.termsSnapshot) && (
           <View style={styles.notesSection}>
-            {quotation.notes && (
+            {invoice.notes && (
               <View style={{ marginBottom: 8 }}>
                 <Text style={styles.notesLabel}>หมายเหตุ / Notes</Text>
-                <Text style={styles.notesText}>{quotation.notes}</Text>
+                <Text style={styles.notesText}>{invoice.notes}</Text>
               </View>
             )}
-            {quotation.termsSnapshot && (
+            {invoice.termsSnapshot && (
               <View>
                 <Text style={styles.notesLabel}>เงื่อนไขการขาย / Terms & Conditions</Text>
-                <Text style={styles.notesText}>{quotation.termsSnapshot}</Text>
+                <Text style={styles.notesText}>{invoice.termsSnapshot}</Text>
               </View>
             )}
           </View>
@@ -239,12 +241,12 @@ export function QuotationPDFDocument({ quotation, company }: Props) {
         <View style={styles.signatureSection}>
           <View style={styles.signatureBox}>
             <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>(ผู้เสนอราคา / Authorized Signature)</Text>
+            <Text style={styles.signatureLabel}>(ผู้มีอำนาจลงนาม / Authorized Signature)</Text>
             <Text style={styles.signatureDate}>วันที่ / Date _______________</Text>
           </View>
           <View style={styles.signatureBox}>
             <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>(ผู้อนุมัติ / Accepted by Customer)</Text>
+            <Text style={styles.signatureLabel}>(ผู้รับสินค้า / Received by)</Text>
             <Text style={styles.signatureDate}>วันที่ / Date _______________</Text>
           </View>
         </View>

@@ -49,9 +49,32 @@ export function QuotationActions({ id, status, qtNumber, canDelete }: Props) {
     if (res.ok) router.push("/dashboard");
   }
 
+  async function convertToInvoice() {
+    setLoading(true);
+    const res = await fetch(`/api/quotations/${id}/convert-to-invoice`, {
+      method: "POST",
+    });
+    setLoading(false);
+    if (res.ok) {
+      const data = await res.json();
+      router.push(`/invoices/${data.id}`);
+    } else {
+      alert("Failed to convert to invoice");
+    }
+  }
+
   return (
     <>
       <div className="flex gap-2 flex-wrap">
+        {status === "ACCEPTED" && (
+          <button
+            onClick={convertToInvoice}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
+          >
+            {loading ? "กำลังดำเนินการ..." : "📄 ออกใบแจ้งหนี้"}
+          </button>
+        )}
         {transitions.map((t) => (
           <button
             key={t.next}
