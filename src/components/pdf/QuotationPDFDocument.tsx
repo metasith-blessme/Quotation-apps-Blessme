@@ -19,8 +19,17 @@ Font.register({
   ],
 });
 
-// Prevent word-splitting which causes Thai characters to be clipped at line end
-Font.registerHyphenationCallback((word) => [word]);
+// Remove restrictive hyphenation for Thai to allow better wrapping
+Font.registerHyphenationCallback((word) => {
+  if (word.length > 15) {
+    const parts = [];
+    for (let i = 0; i < word.length; i += 4) {
+      parts.push(word.substring(i, i + 4));
+    }
+    return parts;
+  }
+  return [word];
+});
 
 const styles = StyleSheet.create({
   page: { fontFamily: "Sarabun", fontSize: 10, padding: 40, color: "#111827" },
@@ -59,9 +68,9 @@ const styles = StyleSheet.create({
   grandTotalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderTopWidth: 1.5, borderTopColor: "#16a34a", marginTop: 4 },
   grandTotalLabel: { fontWeight: "bold", fontSize: 11, color: "#16a34a" },
   grandTotalValue: { fontWeight: "bold", fontSize: 11, color: "#16a34a" },
-  notesSection: { marginBottom: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#e5e7eb" },
-  notesLabel: { fontSize: 8, color: "#6b7280", marginBottom: 3 },
-  notesText: { fontSize: 9, color: "#4b5563", lineHeight: 1.5 },
+  notesSection: { marginBottom: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#e5e7eb", minHeight: 40 },
+  notesLabel: { fontSize: 8, color: "#6b7280", marginBottom: 3, fontWeight: "bold" },
+  notesText: { fontSize: 9, color: "#4b5563", lineHeight: 1.6 },
   signatureSection: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb" },
   signatureBox: { width: "45%", alignItems: "center" },
   signatureLine: { width: "100%", borderBottomWidth: 1, borderBottomColor: "#d1d5db", marginBottom: 4 },

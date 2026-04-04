@@ -272,7 +272,7 @@ export default function QuotationForm({
           <button
             type="button"
             onClick={() => setItems([...items, emptyItem()])}
-            className="text-sm text-green-600 hover:text-green-700 font-medium"
+            className="text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-lg transition-colors"
           >
             + เพิ่มรายการ
           </button>
@@ -375,6 +375,14 @@ export default function QuotationForm({
             </tbody>
           </table>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setItems([...items, emptyItem()])}
+          className="mt-3 w-full py-2 border-2 border-dashed border-gray-300 hover:border-green-400 text-gray-500 hover:text-green-600 text-sm rounded-lg transition-colors"
+        >
+          + เพิ่มรายการสินค้า
+        </button>
 
         {/* Totals */}
         <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">

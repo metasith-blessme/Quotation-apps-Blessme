@@ -17,6 +17,7 @@ model User {
   updatedAt    DateTime    @updatedAt
   quotations   Quotation[]
   invoices     Invoice[]
+  billings     Billing[]
 }
 
 // ─── Products ─────────────────────────────────────────────
@@ -31,6 +32,7 @@ model Product {
   updatedAt      DateTime        @updatedAt
   quotationItems QuotationItem[]
   invoiceItems   InvoiceItem[]
+  billingItems   BillingItem[]
 }
 
 // ─── Company Settings ──────────────────────────────────────
@@ -162,8 +164,8 @@ model Invoice {
   termsSnapshot String?
   pdfPath       String?
 
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   items     InvoiceItem[]
 }
 
@@ -172,6 +174,69 @@ model InvoiceItem {
   id          String   @id @default(cuid())
   invoiceId   String
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+
+  productNameTh String
+  productNameEn String?
+  unit          String
+  quantity      Float
+  unitPrice     Float
+  lineTotal     Float
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── BN Numbering sequence ────────────────────────────────
+model BNSequence {
+  id      String @id @default(cuid())
+  year    Int    @unique
+  lastSeq Int    @default(0)
+}
+
+// ─── Billing Note ──────────────────────────────────────────
+model Billing {
+  id              String  @id @default(cuid())
+  bnNumber        String  @unique
+  status          String  @default("PENDING") // PENDING | COLLECTED | CANCELLED
+  createdById     String
+  createdBy       User    @relation(fields: [createdById], references: [id])
+
+  invoiceId       String? @unique
+  invoiceNumber   String?
+
+  customerName    String
+  customerAddress String?
+  customerTaxId   String?
+  customerPhone   String?
+  customerEmail   String?
+  customerContact String?
+
+  issueDate    DateTime @default(now())
+  dueDate      DateTime?
+
+  subtotal   Float  @default(0)
+  vatRate    Float  @default(7)
+  vatAmount  Float  @default(0)
+  grandTotal Float  @default(0)
+  currency   String @default("THB")
+
+  notes         String?
+  termsSnapshot String?
+  pdfPath       String?
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  items     BillingItem[]
+}
+
+// ─── Billing Line Items ─────────────────────────────────────
+model BillingItem {
+  id          String   @id @default(cuid())
+  billingId   String
+  billing     Billing  @relation(fields: [billingId], references: [id], onDelete: Cascade)
   productId   String?
   product     Product? @relation(fields: [productId], references: [id])
 

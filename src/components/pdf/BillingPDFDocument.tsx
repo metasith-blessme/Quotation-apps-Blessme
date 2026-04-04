@@ -33,18 +33,18 @@ Font.registerHyphenationCallback((word) => {
 
 const styles = StyleSheet.create({
   page: { fontFamily: "Sarabun", fontSize: 10, padding: 40, color: "#111827" },
-  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: "#16a34a" },
+  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: "#3b82f6" },
   logo: { width: 60, height: 60, objectFit: "contain" },
   companyBlock: { flex: 1, paddingLeft: 12 },
-  companyName: { fontSize: 13, fontWeight: "bold", color: "#16a34a", marginBottom: 2, paddingRight: 20 },
+  companyName: { fontSize: 13, fontWeight: "bold", color: "#3b82f6", marginBottom: 2, paddingRight: 20 },
   companyDetail: { fontSize: 9, color: "#6b7280", lineHeight: 1.4, paddingRight: 20 },
-  invTitle: { fontSize: 16, fontWeight: "bold", textAlign: "center", color: "#111827", marginBottom: 12 },
-  infoRow: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 12 },
-  infoGrid: { width: 200 },
+  bnTitle: { fontSize: 16, fontWeight: "bold", textAlign: "center", color: "#111827", marginBottom: 12 },
+  infoRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  customerBlock: { flex: 1, backgroundColor: "#f9fafb", padding: 12, borderRadius: 4, marginRight: 20 },
+  infoGrid: { width: 220 },
   infoLine: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3 },
   infoLabel: { color: "#6b7280", fontSize: 9 },
   infoValue: { fontWeight: "bold", fontSize: 9 },
-  customerSection: { backgroundColor: "#f9fafb", padding: 12, borderRadius: 4, marginBottom: 16 },
   sectionLabel: { fontSize: 8, color: "#6b7280", textTransform: "uppercase", marginBottom: 4 },
   customerName: { fontSize: 11, fontWeight: "bold", marginBottom: 2 },
   customerDetail: { fontSize: 9, color: "#4b5563", lineHeight: 1.4 },
@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
   totalLabel: { color: "#6b7280", fontSize: 9 },
   totalValue: { fontSize: 9 },
-  grandTotalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderTopWidth: 1.5, borderTopColor: "#16a34a", marginTop: 4 },
-  grandTotalLabel: { fontWeight: "bold", fontSize: 11, color: "#16a34a" },
-  grandTotalValue: { fontWeight: "bold", fontSize: 11, color: "#16a34a" },
+  grandTotalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderTopWidth: 1.5, borderTopColor: "#3b82f6", marginTop: 4 },
+  grandTotalLabel: { fontWeight: "bold", fontSize: 11, color: "#3b82f6" },
+  grandTotalValue: { fontWeight: "bold", fontSize: 11, color: "#3b82f6" },
   notesSection: { marginBottom: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#e5e7eb", minHeight: 40 },
   notesLabel: { fontSize: 8, color: "#6b7280", marginBottom: 3, fontWeight: "bold" },
   notesText: { fontSize: 9, color: "#4b5563", lineHeight: 1.6 },
-  signatureSection: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb" },
+  signatureSection: { flexDirection: "row", justifyContent: "space-between", marginTop: 30, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb" },
   signatureBox: { width: "45%", alignItems: "center" },
   signatureLine: { width: "100%", borderBottomWidth: 1, borderBottomColor: "#d1d5db", marginBottom: 4 },
   signatureLabel: { fontSize: 8, color: "#6b7280" },
@@ -86,7 +86,7 @@ function fmtDate(d: Date | string) {
   return new Intl.DateTimeFormat("th-TH", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
 }
 
-interface InvoiceItem {
+interface BillingItem {
   productNameTh: string;
   productNameEn?: string | null;
   unit: string;
@@ -95,9 +95,9 @@ interface InvoiceItem {
   lineTotal: number;
 }
 
-interface Invoice {
-  invNumber: string;
-  quotationNumber?: string | null;
+interface Billing {
+  bnNumber: string;
+  invoiceNumber?: string | null;
   issueDate: Date | string;
   dueDate?: Date | string | null;
   customerName: string;
@@ -111,7 +111,7 @@ interface Invoice {
   grandTotal: number;
   notes?: string | null;
   termsSnapshot?: string | null;
-  items: InvoiceItem[];
+  items: BillingItem[];
 }
 
 interface Company {
@@ -125,11 +125,11 @@ interface Company {
 }
 
 interface Props {
-  invoice: Invoice;
+  billing: Billing;
   company: Company;
 }
 
-export function InvoicePDFDocument({ invoice, company }: Props) {
+export function BillingPDFDocument({ billing, company }: Props) {
   const logoSrc = company.logoPath
     ? path.join(process.cwd(), "public", company.logoPath)
     : null;
@@ -146,50 +146,52 @@ export function InvoicePDFDocument({ invoice, company }: Props) {
             {company.nameEn && <Text style={styles.companyDetail}>{company.nameEn} </Text>}
             <Text style={styles.companyDetail}>{company.address} </Text>
             <Text style={styles.companyDetail}>
-              {company.phone && `โทร: ${company.phone}  `}
-              {company.email && `อีเมล: ${company.email} `}
+              {company.phone && `โทร / Tel: ${company.phone}  `}
+              {company.email && `อีเมล / Email: ${company.email} `}
             </Text>
-            {company.taxId && <Text style={styles.companyDetail}>เลขประจำตัวผู้เสียภาษี: {company.taxId} </Text>}
+            {company.taxId && <Text style={styles.companyDetail}>เลขประจำตัวผู้เสียภาษี / Tax ID: {company.taxId} </Text>}
           </View>
         </View>
 
-        {/* Invoice Title + Info */}
-        <Text style={styles.invTitle}>ใบแจ้งหนี้ / INVOICE</Text>
+        {/* BN Title */}
+        <Text style={styles.bnTitle}>ใบวางบิล / BILLING NOTE</Text>
+        
         <View style={styles.infoRow}>
+          {/* Customer */}
+          <View style={styles.customerBlock}>
+            <Text style={styles.sectionLabel}>เรียน / To</Text>
+            <Text style={styles.customerName}>{billing.customerName} </Text>
+            {billing.customerAddress && <Text style={styles.customerDetail}>{billing.customerAddress} </Text>}
+            <Text style={styles.customerDetail}>
+              {billing.customerTaxId && `เลขภาษี / Tax ID: ${billing.customerTaxId}   `}
+              {billing.customerPhone && `โทร / Tel: ${billing.customerPhone}   `}
+              {billing.customerContact && `ผู้ติดต่อ / Contact: ${billing.customerContact} `}
+            </Text>
+          </View>
+
+          {/* Info */}
           <View style={styles.infoGrid}>
             <View style={styles.infoLine}>
               <Text style={styles.infoLabel}>เลขที่ / No:</Text>
-              <Text style={styles.infoValue}>{invoice.invNumber}</Text>
+              <Text style={styles.infoValue}>{billing.bnNumber}</Text>
             </View>
-            {invoice.quotationNumber && (
+            {billing.invoiceNumber && (
               <View style={styles.infoLine}>
-                <Text style={styles.infoLabel}>อ้างอิงใบเสนอราคา / Ref QT:</Text>
-                <Text style={styles.infoValue}>{invoice.quotationNumber}</Text>
+                <Text style={styles.infoLabel}>อ้างอิงใบแจ้งหนี้ / Ref INV:</Text>
+                <Text style={styles.infoValue}>{billing.invoiceNumber}</Text>
               </View>
             )}
             <View style={styles.infoLine}>
               <Text style={styles.infoLabel}>วันที่ / Date:</Text>
-              <Text style={styles.infoValue}>{fmtDate(invoice.issueDate)}</Text>
+              <Text style={styles.infoValue}>{fmtDate(billing.issueDate)}</Text>
             </View>
-            {invoice.dueDate && (
+            {billing.dueDate && (
               <View style={styles.infoLine}>
                 <Text style={styles.infoLabel}>ครบกำหนด / Due Date:</Text>
-                <Text style={styles.infoValue}>{fmtDate(invoice.dueDate)}</Text>
+                <Text style={styles.infoValue}>{fmtDate(billing.dueDate)}</Text>
               </View>
             )}
           </View>
-        </View>
-
-        {/* Customer */}
-        <View style={styles.customerSection}>
-          <Text style={styles.sectionLabel}>เรียน / To</Text>
-          <Text style={styles.customerName}>{invoice.customerName} </Text>
-          {invoice.customerAddress && <Text style={styles.customerDetail}>{invoice.customerAddress} </Text>}
-          <Text style={styles.customerDetail}>
-            {invoice.customerTaxId && `เลขภาษี / Tax ID: ${invoice.customerTaxId}   `}
-            {invoice.customerPhone && `โทร / Tel: ${invoice.customerPhone}   `}
-            {invoice.customerContact && `ผู้ติดต่อ / Contact: ${invoice.customerContact} `}
-          </Text>
         </View>
 
         {/* Items Table */}
@@ -202,7 +204,7 @@ export function InvoicePDFDocument({ invoice, company }: Props) {
             <Text style={[styles.colPrice, styles.headerText]}>ราคา/หน่วย / Price</Text>
             <Text style={[styles.colTotal, styles.headerText]}>รวม / Total</Text>
           </View>
-          {invoice.items.map((item, i) => (
+          {billing.items.map((item, i) => (
             <View key={i} style={styles.tableRow}>
               <Text style={styles.colNo}>{i + 1}</Text>
               <View style={styles.colProduct}>
@@ -222,32 +224,32 @@ export function InvoicePDFDocument({ invoice, company }: Props) {
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>ราคาก่อนภาษี / Subtotal</Text>
-              <Text style={styles.totalValue}>฿{fmt(invoice.subtotal)}</Text>
+              <Text style={styles.totalValue}>฿{fmt(billing.subtotal)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>ภาษีมูลค่าเพิ่ม / VAT {invoice.vatRate}%</Text>
-              <Text style={styles.totalValue}>฿{fmt(invoice.vatAmount)}</Text>
+              <Text style={styles.totalLabel}>ภาษีมูลค่าเพิ่ม / VAT {billing.vatRate}%</Text>
+              <Text style={styles.totalValue}>฿{fmt(billing.vatAmount)}</Text>
             </View>
             <View style={styles.grandTotalRow}>
               <Text style={styles.grandTotalLabel}>รวมทั้งสิ้น / Grand Total</Text>
-              <Text style={styles.grandTotalValue}>฿{fmt(invoice.grandTotal)}</Text>
+              <Text style={styles.grandTotalValue}>฿{fmt(billing.grandTotal)}</Text>
             </View>
           </View>
         </View>
 
         {/* Notes & Terms */}
-        {(invoice.notes || invoice.termsSnapshot) && (
+        {(billing.notes || billing.termsSnapshot) && (
           <View style={styles.notesSection}>
-            {invoice.notes && (
+            {billing.notes && (
               <View style={{ marginBottom: 8 }}>
                 <Text style={styles.notesLabel}>หมายเหตุ / Notes</Text>
-                <Text style={styles.notesText}>{invoice.notes}</Text>
+                <Text style={styles.notesText}>{billing.notes}</Text>
               </View>
             )}
-            {invoice.termsSnapshot && (
+            {billing.termsSnapshot && (
               <View>
-                <Text style={styles.notesLabel}>เงื่อนไขการขาย / Terms & Conditions</Text>
-                <Text style={styles.notesText}>{invoice.termsSnapshot}</Text>
+                <Text style={styles.notesLabel}>เงื่อนไข / Terms</Text>
+                <Text style={styles.notesText}>{billing.termsSnapshot}</Text>
               </View>
             )}
           </View>

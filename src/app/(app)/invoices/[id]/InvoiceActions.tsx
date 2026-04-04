@@ -40,8 +40,31 @@ export default function InvoiceActions({ id, status }: Props) {
     router.refresh();
   }
 
+  async function convertToBilling() {
+    setLoading(true);
+    const res = await fetch(`/api/invoices/${id}/convert-to-billing`, {
+      method: "POST",
+    });
+    setLoading(false);
+    if (res.ok) {
+      const data = await res.json();
+      router.push(`/billings/${data.id}`);
+    } else {
+      alert("Failed to convert to billing note");
+    }
+  }
+
   return (
     <div className="flex gap-2 items-center">
+      {(status === "UNPAID" || status === "OVERDUE") && (
+        <button
+          onClick={convertToBilling}
+          disabled={loading}
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
+        >
+          {loading ? "กำลังดำเนินการ..." : "📄 ออกใบวางบิล"}
+        </button>
+      )}
       <a
         href={`/api/invoices/${id}/pdf`}
         target="_blank"

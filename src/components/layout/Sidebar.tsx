@@ -18,6 +18,12 @@ const navItems = [
     adminOnly: false,
   },
   {
+    href: "/billings",
+    label: "ใบวางบิล / Billing",
+    icon: "📄",
+    adminOnly: false,
+  },
+  {
     href: "/clients",
     label: "จัดการลูกค้า / Clients",
     icon: "👥",
