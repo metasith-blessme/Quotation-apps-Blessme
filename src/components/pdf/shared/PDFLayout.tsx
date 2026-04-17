@@ -99,21 +99,13 @@ export function CustomerSection({
   return (
     <View style={styles.customerSection}>
       <Text style={styles.sectionLabel}>เรียน / To</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.customerName}>{customerName} </Text>
-      </View>
-      {customerAddress && (
-        <View style={{ flex: 1 }}>
-          <Text style={styles.customerDetail}>{customerAddress} </Text>
-        </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.customerDetail}>
-          {customerTaxId && `เลขภาษี / Tax ID: ${customerTaxId}   `}
-          {customerPhone && `โทร / Tel: ${customerPhone}   `}
-          {customerContact && `ผู้ติดต่อ / Contact: ${customerContact} `}
-        </Text>
-      </View>
+      <Text style={styles.customerName}>{customerName} </Text>
+      {customerAddress && <Text style={styles.customerDetail}>{customerAddress} </Text>}
+      <Text style={styles.customerDetail}>
+        {customerTaxId && `เลขภาษี / Tax ID: ${customerTaxId}   `}
+        {customerPhone && `โทร / Tel: ${customerPhone}   `}
+        {customerContact && `ผู้ติดต่อ / Contact: ${customerContact} `}
+      </Text>
     </View>
   );
 }
