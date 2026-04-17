@@ -37,7 +37,13 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
   const qtNumber = await generateQTNumber();
 
-  const subtotal = data.items.reduce((sum, item) => sum + item.lineTotal, 0);
+  // SECURITY: Compute lineTotal server-side — never trust client calculation
+  const itemsWithComputedTotals = data.items.map((item) => ({
+    ...item,
+    lineTotal: item.quantity * item.unitPrice,
+  }));
+
+  const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
   const vatAmount = (subtotal * data.vatRate) / 100;
   const grandTotal = subtotal + vatAmount;
 
@@ -61,7 +67,7 @@ export async function POST(req: NextRequest) {
       notes: data.notes,
       termsSnapshot: data.termsSnapshot,
       items: {
-        create: data.items.map((item, i) => ({
+        create: itemsWithComputedTotals.map((item, i) => ({
           productId: item.productId,
           productNameTh: item.productNameTh,
           productNameEn: item.productNameEn,

@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { formatCurrency } from "@/lib/utils/format";
 
 const QT_STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-600",
@@ -41,17 +41,30 @@ export default async function DashboardPage() {
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   const [
-    allQuotations,
-    allInvoices,
-    allBillings,
+    qtCountsByStatus,
+    invCountsByStatus,
+    bnCountsByStatus,
     acceptedThisMonthAgg,
     recentQuotations,
     recentInvoices,
     recentBillings,
   ] = await Promise.all([
-    prisma.quotation.findMany({ where: whereOwn, select: { status: true } }),
-    prisma.invoice.findMany({ where: whereOwn, select: { status: true } }),
-    prisma.billing.findMany({ where: whereOwn, select: { status: true } }),
+    // PERFORMANCE: Use groupBy to count at DB level instead of fetching all records
+    prisma.quotation.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.invoice.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.billing.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
     prisma.quotation.aggregate({
       where: {
         ...whereOwn,
@@ -81,16 +94,16 @@ export default async function DashboardPage() {
   ]);
 
   const qtStats = {
-    total: allQuotations.length,
-    sent: allQuotations.filter((q) => q.status === "SENT").length,
+    total: qtCountsByStatus.reduce((sum, item) => sum + item._count, 0),
+    sent: qtCountsByStatus.find((item) => item.status === "SENT")?._count ?? 0,
   };
   const invStats = {
-    total: allInvoices.length,
-    unpaid: allInvoices.filter((i) => i.status === "UNPAID").length,
+    total: invCountsByStatus.reduce((sum, item) => sum + item._count, 0),
+    unpaid: invCountsByStatus.find((item) => item.status === "UNPAID")?._count ?? 0,
   };
   const bnStats = {
-    total: allBillings.length,
-    pending: allBillings.filter((b) => b.status === "PENDING").length,
+    total: bnCountsByStatus.reduce((sum, item) => sum + item._count, 0),
+    pending: bnCountsByStatus.find((item) => item.status === "PENDING")?._count ?? 0,
   };
   const acceptedTotal = acceptedThisMonthAgg._sum.grandTotal ?? 0;
 

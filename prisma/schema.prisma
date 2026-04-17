@@ -103,6 +103,10 @@ model Quotation {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   items     QuotationItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
 }
 
 // ─── Quotation Line Items ───────────────────────────────────
@@ -167,6 +171,10 @@ model Invoice {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   items     InvoiceItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
 }
 
 // ─── Invoice Line Items ─────────────────────────────────────
@@ -230,6 +238,10 @@ model Billing {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   items     BillingItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
 }
 
 // ─── Billing Line Items ─────────────────────────────────────

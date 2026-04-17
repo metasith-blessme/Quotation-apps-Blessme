@@ -7,8 +7,9 @@ const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL ?? "file:../dev
 const prisma = new PrismaClient({ adapter } as any);
 
 async function main() {
-  // Create admin user
-  const adminHash = await bcrypt.hash("admin1234", 12);
+  // Create admin user — use env var or fallback to default for local dev
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin1234";
+  const adminHash = await bcrypt.hash(adminPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: "blessme.team@gmail.com" },
     update: {},

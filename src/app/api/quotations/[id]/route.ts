@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { quotationSchema } from "@/lib/validations/quotation.schema";
+import { quotationSchema, quotationStatusUpdateSchema } from "@/lib/validations/quotation.schema";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,11 +38,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   const body = await req.json();
 
-  // Allow status-only updates
+  // Allow status-only updates — SECURITY: validate status against enum
   if (body.status && Object.keys(body).length === 1) {
+    const statusParsed = quotationStatusUpdateSchema.safeParse(body);
+    if (!statusParsed.success) {
+      return NextResponse.json({ error: statusParsed.error.flatten() }, { status: 400 });
+    }
+
     const updated = await prisma.quotation.update({
       where: { id },
-      data: { status: body.status },
+      data: { status: statusParsed.data.status },
     });
     return NextResponse.json(updated);
   }
@@ -53,7 +58,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 
   const data = parsed.data;
-  const subtotal = data.items.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  // SECURITY: Compute lineTotal server-side — never trust client calculation
+  const itemsWithComputedTotals = data.items.map((item) => ({
+    ...item,
+    lineTotal: item.quantity * item.unitPrice,
+  }));
+
+  const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
   const vatAmount = (subtotal * data.vatRate) / 100;
   const grandTotal = subtotal + vatAmount;
 
@@ -79,7 +91,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       notes: data.notes,
       termsSnapshot: data.termsSnapshot,
       items: {
-        create: data.items.map((item, i) => ({
+        create: itemsWithComputedTotals.map((item, i) => ({
           productId: item.productId,
           productNameTh: item.productNameTh,
           productNameEn: item.productNameEn,

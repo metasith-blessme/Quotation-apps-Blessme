@@ -32,6 +32,16 @@ export async function POST(
 
     const invNumber = await generateINVNumber();
 
+    // SECURITY: Recompute lineTotal and totals server-side
+    const itemsWithComputedTotals = quotation.items.map((item) => ({
+      ...item,
+      lineTotal: item.quantity * item.unitPrice,
+    }));
+
+    const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
+    const vatAmount = (subtotal * quotation.vatRate) / 100;
+    const grandTotal = subtotal + vatAmount;
+
     const invoice = await prisma.invoice.create({
       data: {
         invNumber,
@@ -48,15 +58,15 @@ export async function POST(
         issueDate: new Date(),
         // Due date default to 30 days from now
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: quotation.subtotal,
+        subtotal,
         vatRate: quotation.vatRate,
-        vatAmount: quotation.vatAmount,
-        grandTotal: quotation.grandTotal,
+        vatAmount,
+        grandTotal,
         currency: quotation.currency,
         notes: quotation.notes,
         termsSnapshot: quotation.termsSnapshot,
         items: {
-          create: quotation.items.map((item) => ({
+          create: itemsWithComputedTotals.map((item, i) => ({
             productId: item.productId,
             productNameTh: item.productNameTh,
             productNameEn: item.productNameEn,
@@ -64,7 +74,7 @@ export async function POST(
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             lineTotal: item.lineTotal,
-            sortOrder: item.sortOrder,
+            sortOrder: item.sortOrder ?? i,
           })),
         },
       },

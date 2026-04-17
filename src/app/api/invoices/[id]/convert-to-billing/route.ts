@@ -32,6 +32,16 @@ export async function POST(
 
     const bnNumber = await generateBNNumber();
 
+    // SECURITY: Recompute lineTotal and totals server-side
+    const itemsWithComputedTotals = invoice.items.map((item) => ({
+      ...item,
+      lineTotal: item.quantity * item.unitPrice,
+    }));
+
+    const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
+    const vatAmount = (subtotal * invoice.vatRate) / 100;
+    const grandTotal = subtotal + vatAmount;
+
     const billing = await prisma.billing.create({
       data: {
         bnNumber,
@@ -48,15 +58,15 @@ export async function POST(
         issueDate: new Date(),
         // Due date same as invoice or +30
         dueDate: invoice.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: invoice.subtotal,
+        subtotal,
         vatRate: invoice.vatRate,
-        vatAmount: invoice.vatAmount,
-        grandTotal: invoice.grandTotal,
+        vatAmount,
+        grandTotal,
         currency: invoice.currency,
         notes: invoice.notes,
         termsSnapshot: invoice.termsSnapshot,
         items: {
-          create: invoice.items.map((item) => ({
+          create: itemsWithComputedTotals.map((item, i) => ({
             productId: item.productId,
             productNameTh: item.productNameTh,
             productNameEn: item.productNameEn,
@@ -64,7 +74,7 @@ export async function POST(
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             lineTotal: item.lineTotal,
-            sortOrder: item.sortOrder,
+            sortOrder: item.sortOrder ?? i,
           })),
         },
       },

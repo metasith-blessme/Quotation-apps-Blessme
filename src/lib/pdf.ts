@@ -4,6 +4,7 @@ import { QuotationPDFDocument } from "@/components/pdf/QuotationPDFDocument";
 import { InvoicePDFDocument } from "@/components/pdf/InvoicePDFDocument";
 import { BillingPDFDocument } from "@/components/pdf/BillingPDFDocument";
 import { prisma } from "./db";
+import { getCachedCompany } from "./company-cache";
 
 export async function generateQuotationPDF(id: string): Promise<Buffer> {
   const quotation = await prisma.quotation.findUnique({
@@ -13,7 +14,8 @@ export async function generateQuotationPDF(id: string): Promise<Buffer> {
 
   if (!quotation) throw new Error("Quotation not found");
 
-  const company = await prisma.company.findFirst();
+  // PERFORMANCE: Use cached company settings instead of direct DB query
+  const company = await getCachedCompany();
   if (!company) throw new Error("Company not configured");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,7 +33,8 @@ export async function generateInvoicePDF(id: string): Promise<Buffer> {
 
   if (!invoice) throw new Error("Invoice not found");
 
-  const company = await prisma.company.findFirst();
+  // PERFORMANCE: Use cached company settings instead of direct DB query
+  const company = await getCachedCompany();
   if (!company) throw new Error("Company not configured");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,7 +52,8 @@ export async function generateBillingPDF(id: string): Promise<Buffer> {
 
   if (!billing) throw new Error("Billing not found");
 
-  const company = await prisma.company.findFirst();
+  // PERFORMANCE: Use cached company settings instead of direct DB query
+  const company = await getCachedCompany();
   if (!company) throw new Error("Company not configured");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
