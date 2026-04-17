@@ -100,11 +100,11 @@ export function CustomerSection({
     <View style={styles.customerSection}>
       <Text style={styles.sectionLabel}>เรียน / To</Text>
       <View style={{ flex: 1 }}>
-        <Text style={styles.customerName}>{customerName}</Text>
+        <Text style={styles.customerName}>{customerName} </Text>
       </View>
       {customerAddress && (
         <View style={{ flex: 1 }}>
-          <Text style={styles.customerDetail}>{customerAddress}</Text>
+          <Text style={styles.customerDetail}>{customerAddress} </Text>
         </View>
       )}
       <View style={{ flex: 1 }}>
