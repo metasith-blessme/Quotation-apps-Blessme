@@ -7,6 +7,12 @@ import { useSession } from "next-auth/react";
 const navItems = [
   {
     href: "/dashboard",
+    label: "หน้าหลัก / Dashboard",
+    icon: "🏠",
+    adminOnly: false,
+  },
+  {
+    href: "/quotations",
     label: "ใบเสนอราคา / Quotations",
     icon: "📄",
     adminOnly: false,

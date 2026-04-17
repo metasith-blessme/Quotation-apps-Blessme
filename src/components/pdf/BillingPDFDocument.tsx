@@ -19,15 +19,44 @@ Font.register({
   ],
 });
 
-// Remove restrictive hyphenation for Thai to allow better wrapping
+// Smart hyphenation for Thai text: never break combining marks
 Font.registerHyphenationCallback((word) => {
-  if (word.length > 15) {
-    const parts = [];
-    for (let i = 0; i < word.length; i += 4) {
-      parts.push(word.substring(i, i + 4));
-    }
-    return parts;
+  // Check if word contains Thai characters
+  const hasThaiChars = /[\u0E00-\u0E7F]/.test(word);
+
+  if (!hasThaiChars) {
+    // For non-Thai words, use default hyphenation
+    return undefined;
   }
+
+  // For Thai text, break smartly without separating combining marks
+  if (word.length > 20) {
+    const parts = [];
+    let current = '';
+
+    for (let i = 0; i < word.length; i++) {
+      const char = word[i];
+      const isCombiningMark = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(char);
+
+      current += char;
+
+      // Break at ~15 chars, but only if next char is not a combining mark
+      if (current.length >= 15 && !isCombiningMark && i < word.length - 1) {
+        const nextChar = word[i + 1];
+        if (!/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(nextChar)) {
+          parts.push(current);
+          current = '';
+        }
+      }
+    }
+
+    if (current) {
+      parts.push(current);
+    }
+
+    return parts.length > 1 ? parts : [word];
+  }
+
   return [word];
 });
 

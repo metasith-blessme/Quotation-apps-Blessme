@@ -19,8 +19,8 @@ The application is a full-featured management system for Quotations, Invoices, a
 - **PDFs:** @react-pdf/renderer
 - **Auth:** NextAuth.js v5
 
-## Recent Updates (March 31, 2026)
-- Implemented full Invoice and Billing Note conversion cycles.
-- Fixed Thai character truncation in PDFs by increasing column widths and optimizing hyphenation logic.
-- Standardized bilingual labeling across all exported documents.
-- Synced production database schema for new models.
+## Recent Updates (April 5, 2026)
+- **Dashboard Refactor:** Redesigned the home dashboard to provide a high-level overview with statistics for Quotations, Invoices, and Billing Notes, including "Recent Activity" feeds for each.
+- **Navigation & Routing:** Added a dedicated `/quotations` page for filtered list management and updated the Sidebar for better navigation between the Dashboard and document modules.
+- **Documentation:** Extensively updated `CLAUDE.md` with architectural details, document lifecycles (Quotation → Invoice → Billing Note), and Turso-specific manual migration guides.
+- **PDF & Workflow:** Finalized Invoice and Billing Note conversion cycles with bilingual PDF support and optimized Thai typography.
