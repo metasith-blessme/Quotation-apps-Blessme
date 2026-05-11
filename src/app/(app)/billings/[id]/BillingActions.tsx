@@ -37,8 +37,31 @@ export default function BillingActions({ id, status }: Props) {
     router.refresh();
   }
 
+  async function convertToReceipt() {
+    setLoading(true);
+    const res = await fetch(`/api/billings/${id}/convert-to-receipt`, {
+      method: "POST",
+    });
+    setLoading(false);
+    if (res.ok) {
+      const data = await res.json();
+      router.push(`/receipts/${data.id}`);
+    } else {
+      alert("Failed to convert to receipt");
+    }
+  }
+
   return (
     <div className="flex gap-2 items-center">
+      {(status === "PENDING" || status === "COLLECTED") && (
+        <button
+          onClick={convertToReceipt}
+          disabled={loading}
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
+        >
+          {loading ? "กำลังดำเนินการ..." : "🧾 ออกใบเสร็จ"}
+        </button>
+      )}
       <a
         href={`/api/billings/${id}/pdf`}
         target="_blank"

@@ -18,6 +18,7 @@ model User {
   quotations   Quotation[]
   invoices     Invoice[]
   billings     Billing[]
+  receipts     Receipt[]
 }
 
 // ─── Products ─────────────────────────────────────────────
@@ -33,6 +34,7 @@ model Product {
   quotationItems QuotationItem[]
   invoiceItems   InvoiceItem[]
   billingItems   BillingItem[]
+  receiptItems   ReceiptItem[]
 }
 
 // ─── Company Settings ──────────────────────────────────────
@@ -171,6 +173,7 @@ model Invoice {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   items     InvoiceItem[]
+  receipts  Receipt[]
 
   @@index([status])
   @@index([createdById])
@@ -199,6 +202,13 @@ model InvoiceItem {
 
 // ─── BN Numbering sequence ────────────────────────────────
 model BNSequence {
+  id      String @id @default(cuid())
+  year    Int    @unique
+  lastSeq Int    @default(0)
+}
+
+// ─── RC Numbering sequence ────────────────────────────────
+model RCSequence {
   id      String @id @default(cuid())
   year    Int    @unique
   lastSeq Int    @default(0)
@@ -238,6 +248,7 @@ model Billing {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   items     BillingItem[]
+  receipts  Receipt[]
 
   @@index([status])
   @@index([createdById])
@@ -249,6 +260,70 @@ model BillingItem {
   id          String   @id @default(cuid())
   billingId   String
   billing     Billing  @relation(fields: [billingId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+
+  productNameTh String
+  productNameEn String?
+  unit          String
+  quantity      Float
+  unitPrice     Float
+  lineTotal     Float
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Receipt ───────────────────────────────────────────────
+model Receipt {
+  id              String  @id @default(cuid())
+  rcNumber        String  @unique
+  status          String  @default("COMPLETED") // COMPLETED | CANCELLED
+  createdById     String
+  createdBy       User    @relation(fields: [createdById], references: [id])
+
+  invoiceId       String? @unique
+  invoiceNumber   String?
+  invoice         Invoice? @relation(fields: [invoiceId], references: [id])
+
+  billingId       String? @unique
+  billingNumber   String?
+  billing         Billing? @relation(fields: [billingId], references: [id])
+
+  customerName    String
+  customerAddress String?
+  customerTaxId   String?
+  customerPhone   String?
+  customerEmail   String?
+  customerContact String?
+
+  issueDate    DateTime @default(now())
+
+  subtotal   Float  @default(0)
+  vatRate    Float  @default(7)
+  vatAmount  Float  @default(0)
+  grandTotal Float  @default(0)
+  currency   String @default("THB")
+
+  notes         String?
+  termsSnapshot String?
+  pdfPath       String?
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  items     ReceiptItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+// ─── Receipt Line Items ─────────────────────────────────────
+model ReceiptItem {
+  id          String   @id @default(cuid())
+  receiptId   String
+  receipt     Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
   productId   String?
   product     Product? @relation(fields: [productId], references: [id])
 

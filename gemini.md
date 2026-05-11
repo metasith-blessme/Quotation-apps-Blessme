@@ -1,55 +1,64 @@
 # Project Overview: BlessMe Topping Quotation App
 
 ## Project Status
-The application is a full-featured management system for Quotations, Invoices, and Billing Notes, designed for **BlessMe Topping Co., Ltd.** It is built with Next.js 16, Prisma, and Turso (LibSQL).
+Full-featured document management system for Quotations, Invoices, and Billing Notes, built for **BlessMe Topping Co., Ltd.** Production-deployed on Vercel with Turso database.
 
 ## Key Features
-- **Bilingual Interface:** Support for both Thai and English labels across the UI and PDF documents.
-- **Workflow Automation:**
-    - Quotation (Accepted) -> Invoice
-    - Invoice (Unpaid) -> Billing Note (ใบวางบิล)
-- **PDF Generation:** Professional, bilingual PDF exports with optimized Thai typography (Sarabun font) and proper line wrapping for long remarks.
-- **Role-Based Access:** ADMIN and SALES roles via NextAuth.js.
-- **Data Management:** Management modules for Clients, Products, and Company Settings.
+- **Document Lifecycle:** Quotation → Invoice → Billing Note with one-click conversion
+- **Bilingual Interface:** Thai primary, English secondary across UI and PDF documents
+- **PDF Generation:** Professional bilingual PDFs with Sarabun font, shared component architecture, and Thai text handling
+- **Role-Based Access:** ADMIN (full access) and SALES (own documents only) via NextAuth.js
+- **Data Management:** Clients, Products, and Company Settings modules
+- **Server-Side Financial Integrity:** Line totals recomputed server-side on every write
 
 ## Technical Stack
-- **Framework:** Next.js 16 (App Router)
-- **Styling:** TailwindCSS 4
-- **Database:** Prisma ORM with LibSQL/Turso
-- **PDFs:** @react-pdf/renderer
-- **Auth:** NextAuth.js v5
+- **Framework:** Next.js 16 (App Router), React 19
+- **Styling:** Tailwind CSS 4
+- **Database:** Prisma ORM with LibSQL/Turso, indexes on status/createdById/createdAt
+- **PDFs:** @react-pdf/renderer with shared component architecture (PDFLayout, pdfStyles, pdfFonts)
+- **Auth:** NextAuth.js v5 (credentials provider, JWT sessions)
+- **Validation:** Zod schemas for all document types and entities
+- **Caching:** Company settings cached with 1-minute TTL for PDF generation
 
-## Recent Updates
+## Changelog
 
-### April 17, 2026 — CRITICAL Security Hardening & Performance Optimization
-**All 4 phases completed and deployed to production:**
+### April 20, 2026 — PDF Thai Text Clipping Fix
+- Fixed customer name truncation in PDFs (closing parenthesis clipped on long Thai names)
+- Root cause: `@react-pdf/renderer` clips last character of Thai text without trailing space buffer
+- Added `paddingRight` to customer text styles for additional protection
+- Removed invalid CSS properties (`wordBreak`, `flexWrap`) not supported by @react-pdf/renderer
+
+### April 17, 2026 — Security Hardening & Performance Optimization (4 Phases)
 
 #### Phase 1: CRITICAL Security Fixes
-- ✅ Added ownership guards to invoice/billing routes (prevent SALES user from accessing other users' documents)
-- ✅ Implemented Zod enum validation for all document statuses (no arbitrary values allowed)
-- ✅ Server-side financial data verification: `lineTotal = quantity * unitPrice` (prevents fraud)
-- ✅ Fixed PDF hyphenation callback return types
+- Added ownership guards to invoice/billing routes (SALES users restricted to own documents)
+- Implemented Zod enum validation for all document statuses
+- Server-side financial data verification: `lineTotal = quantity * unitPrice`
+- Fixed PDF hyphenation callback return types
 
 #### Phase 2: Performance Optimization
-- ✅ Added database indexes on status, createdById, createdAt for all document models
-- ✅ Replaced full-table scans with `groupBy` aggregates on dashboard (for count-only queries)
-- ✅ Implemented 1-minute company settings cache (90% reduction in PDF DB round-trips)
+- Added database indexes on status, createdById, createdAt for all document models
+- Replaced full-table scans with `groupBy` aggregates on dashboard
+- Implemented 1-minute company settings cache for PDF generation
 
 #### Phase 3: Maintainability — PDF Refactor
-- ✅ Extracted shared PDF components: `PDFLayout.tsx` (header, table, totals, signatures)
-- ✅ Created `pdfStyles.ts` factory for parameterized accent colors (green for Quotation, blue for Invoice/Billing)
-- ✅ Created `pdfFonts.ts` with hoisted font registration and Thai hyphenation logic
-- ✅ Refactored all 3 PDF documents: 880 lines → 639 lines (27% reduction)
+- Extracted shared PDF components into `src/components/pdf/shared/`
+- Created style factory with parameterized accent colors (green=Quotation, blue=Invoice/Billing)
+- Reduced PDF code: 880 lines → 639 lines (27% reduction)
 
 #### Phase 4: Quick Wins
-- ✅ Added TypeScript typecheck script: `npm run typecheck`
-- ✅ Added HTTP security headers (nosniff, DENY frames, HSTS)
-- ✅ Replaced hardcoded seed password with `SEED_ADMIN_PASSWORD` environment variable
+- Added `npm run typecheck` script
+- Added HTTP security headers (HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)
+- Replaced hardcoded seed password with `SEED_ADMIN_PASSWORD` environment variable
 
-**Build Status:** ✓ TypeScript: No errors | ✓ ESLint: 0 errors | ✓ Production ready
+### April 5, 2026 — Dashboard & Document Workflow
+- Redesigned dashboard with statistics for all document types and "Recent Activity" feeds
+- Added dedicated `/quotations` page with filtered list management
+- Updated Sidebar navigation between Dashboard and document modules
+- Finalized Invoice and Billing Note conversion cycles with bilingual PDF support
 
-### April 5, 2026
-- **Dashboard Refactor:** Redesigned the home dashboard to provide a high-level overview with statistics for Quotations, Invoices, and Billing Notes, including "Recent Activity" feeds for each.
-- **Navigation & Routing:** Added a dedicated `/quotations` page for filtered list management and updated the Sidebar for better navigation between the Dashboard and document modules.
-- **Documentation:** Extensively updated `CLAUDE.md` with architectural details, document lifecycles (Quotation → Invoice → Billing Note), and Turso-specific manual migration guides.
-- **PDF & Workflow:** Finalized Invoice and Billing Note conversion cycles with bilingual PDF support and optimized Thai typography.
+### March 31, 2026 — Initial Invoice & Billing Note Support
+- Added Invoice and Billing Note models, API routes, and PDF templates
+- Implemented bilingual PDF output (Thai/English)
+- Fixed Thai text wrapping and truncation in PDFs
+- Added document conversion action buttons

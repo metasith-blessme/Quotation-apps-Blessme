@@ -30,6 +30,13 @@ const BN_STATUS_COLORS: Record<string, string> = {
 const BN_STATUS_LABELS: Record<string, string> = {
   PENDING: "รอเก็บเงิน", COLLECTED: "เก็บแล้ว", CANCELLED: "ยกเลิก",
 };
+const RC_STATUS_COLORS: Record<string, string> = {
+  COMPLETED: "bg-green-100 text-green-700",
+  CANCELLED: "bg-gray-100 text-gray-500",
+};
+const RC_STATUS_LABELS: Record<string, string> = {
+  COMPLETED: "เรียบร้อย", CANCELLED: "ยกเลิก",
+};
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -44,12 +51,13 @@ export default async function DashboardPage() {
     qtCountsByStatus,
     invCountsByStatus,
     bnCountsByStatus,
+    rcCountsByStatus,
     acceptedThisMonthAgg,
     recentQuotations,
     recentInvoices,
     recentBillings,
+    recentReceipts,
   ] = await Promise.all([
-    // PERFORMANCE: Use groupBy to count at DB level instead of fetching all records
     prisma.quotation.groupBy({
       by: ["status"],
       where: whereOwn,
@@ -61,6 +69,11 @@ export default async function DashboardPage() {
       _count: true,
     }),
     prisma.billing.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.receipt.groupBy({
       by: ["status"],
       where: whereOwn,
       _count: true,
@@ -91,6 +104,12 @@ export default async function DashboardPage() {
       take: 5,
       select: { id: true, bnNumber: true, customerName: true, grandTotal: true, status: true, createdAt: true },
     }),
+    prisma.receipt.findMany({
+      where: whereOwn,
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, rcNumber: true, customerName: true, grandTotal: true, status: true, createdAt: true },
+    }),
   ]);
 
   const qtStats = {
@@ -105,6 +124,10 @@ export default async function DashboardPage() {
     total: bnCountsByStatus.reduce((sum, item) => sum + item._count, 0),
     pending: bnCountsByStatus.find((item) => item.status === "PENDING")?._count ?? 0,
   };
+  const rcStats = {
+    total: rcCountsByStatus.reduce((sum, item) => sum + item._count, 0),
+    completed: rcCountsByStatus.find((item) => item.status === "COMPLETED")?._count ?? 0,
+  };
   const acceptedTotal = acceptedThisMonthAgg._sum.grandTotal ?? 0;
 
   return (
@@ -112,7 +135,7 @@ export default async function DashboardPage() {
       <h2 className="text-xl font-semibold text-gray-900">หน้าหลัก / Dashboard</h2>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">ใบเสนอราคา / Quotations</p>
           <p className="text-2xl font-bold text-gray-700">{qtStats.total}</p>
@@ -129,6 +152,11 @@ export default async function DashboardPage() {
           <p className="text-sm text-orange-500 mt-1">{bnStats.pending} รอเก็บเงิน</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-xs text-gray-500 mb-1">ใบเสร็จ / Receipts</p>
+          <p className="text-2xl font-bold text-gray-700">{rcStats.total}</p>
+          <p className="text-sm text-indigo-600 mt-1">{rcStats.completed} เรียบร้อย</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">ยอดอนุมัติเดือนนี้</p>
           <p className="text-xl font-bold text-green-700">฿{formatCurrency(acceptedTotal)}</p>
           <p className="text-sm text-gray-400 mt-1">ใบเสนอราคา ACCEPTED</p>
@@ -136,7 +164,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent activity */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-4 gap-6">
         {/* Recent Quotations */}
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
@@ -226,6 +254,36 @@ export default async function DashboardPage() {
             </ul>
           )}
         </div>
+
+        {/* Recent Receipts */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-800">ใบเสร็จล่าสุด</h3>
+            <Link href="/receipts" className="text-xs text-green-600 hover:underline">ดูทั้งหมด →</Link>
+          </div>
+          {recentReceipts.length === 0 ? (
+            <p className="text-xs text-gray-400 py-4 text-center">ยังไม่มีข้อมูล</p>
+          ) : (
+            <ul className="space-y-2">
+              {recentReceipts.map((rc) => (
+                <li key={rc.id}>
+                  <Link href={`/receipts/${rc.id}`} className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-gray-500">{rc.rcNumber}</p>
+                      <p className="text-sm text-gray-800 truncate">{rc.customerName}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RC_STATUS_COLORS[rc.status]}`}>
+                        {RC_STATUS_LABELS[rc.status]}
+                      </span>
+                      <span className="text-xs text-gray-500">฿{formatCurrency(rc.grandTotal)}</span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {/* Quick actions */}
@@ -255,6 +313,12 @@ export default async function DashboardPage() {
             className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
           >
             ใบวางบิล
+          </Link>
+          <Link
+            href="/receipts"
+            className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+          >
+            ใบเสร็จรับเงิน
           </Link>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { QuotationPDFDocument } from "@/components/pdf/QuotationPDFDocument";
 import { InvoicePDFDocument } from "@/components/pdf/InvoicePDFDocument";
 import { BillingPDFDocument } from "@/components/pdf/BillingPDFDocument";
+import { ReceiptPDFDocument } from "@/components/pdf/ReceiptPDFDocument";
 import { prisma } from "./db";
 import { getCachedCompany } from "./company-cache";
 
@@ -58,6 +59,25 @@ export async function generateBillingPDF(id: string): Promise<Buffer> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = createElement(BillingPDFDocument as any, { billing, company });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buffer = await renderToBuffer(element as any);
+  return Buffer.from(buffer);
+}
+
+export async function generateReceiptPDF(id: string): Promise<Buffer> {
+  const receipt = await prisma.receipt.findUnique({
+    where: { id },
+    include: { items: { orderBy: { sortOrder: "asc" } } },
+  });
+
+  if (!receipt) throw new Error("Receipt not found");
+
+  // PERFORMANCE: Use cached company settings instead of direct DB query
+  const company = await getCachedCompany();
+  if (!company) throw new Error("Company not configured");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const element = createElement(ReceiptPDFDocument as any, { receipt, company });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(element as any);
   return Buffer.from(buffer);

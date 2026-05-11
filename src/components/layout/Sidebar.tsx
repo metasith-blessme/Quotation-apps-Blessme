@@ -30,6 +30,12 @@ const navItems = [
     adminOnly: false,
   },
   {
+    href: "/receipts",
+    label: "ใบเสร็จรับเงิน / Receipts",
+    icon: "🧾",
+    adminOnly: false,
+  },
+  {
     href: "/clients",
     label: "จัดการลูกค้า / Clients",
     icon: "👥",
