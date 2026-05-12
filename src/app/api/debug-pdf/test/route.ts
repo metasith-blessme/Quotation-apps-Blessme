@@ -4,7 +4,6 @@ import { createElement } from "react";
 import { ReceiptPDFDocument } from "@/components/pdf/ReceiptPDFDocument";
 
 export async function GET() {
-  // Use hardcoded data (same as the real receipt) to isolate the issue
   const receipt = {
     rcNumber: "RC-2026-001",
     issueDate: "2026-05-12T04:05:44.558Z",
@@ -12,7 +11,7 @@ export async function GET() {
     customerAddress: "41/1 หมู่ที่4 ตำบลกระทุ่มล้ม อำเภอสามพราน จังหวัดนครปฐม 73220",
     customerTaxId: "0-7355-63002-42-3",
     customerPhone: "0966910156",
-    customerEmail: "",
+    customerEmail: "test@example.com",
     customerContact: "นายภัคพล ทิพย์ปัญญา",
     subtotal: 80,
     vatRate: 7,

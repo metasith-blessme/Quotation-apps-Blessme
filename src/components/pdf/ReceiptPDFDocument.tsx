@@ -1,10 +1,9 @@
-import React from "react";
+import { createElement as h } from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { registerPDFFonts } from "./shared/pdfFonts";
 import { createPDFStyles, formatDate } from "./shared/pdfStyles";
 import {
   PdfHeader,
-  DocumentTitle,
   DocumentInfo,
   CustomerSection,
   ItemsTable,
@@ -15,7 +14,6 @@ import {
   type LineItem,
 } from "./shared/PDFLayout";
 
-// Register fonts
 registerPDFFonts();
 
 interface Receipt {
@@ -42,7 +40,6 @@ interface Props {
 }
 
 export function ReceiptPDFDocument({ receipt, company }: Props) {
-  // Use a distinct color for receipts (e.g., purple or indigo)
   const styles = createPDFStyles("#6366f1");
 
   const isTaxInvoice = receipt.vatRate > 0;
@@ -53,45 +50,43 @@ export function ReceiptPDFDocument({ receipt, company }: Props) {
     ? "RECEIPT / TAX INVOICE "
     : "RECEIPT ";
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <PdfHeader company={company} styles={styles} />
-        <View style={{ marginBottom: 12, alignItems: 'center' }}>
-          <Text style={styles.documentTitle}>{title}</Text>
-          <Text style={[styles.documentTitle, { fontSize: 12, marginTop: -8 }]}>{subTitle}</Text>
-        </View>
-        <DocumentInfo
-          infoLines={[
-            { label: "เลขที่ / No:", value: receipt.rcNumber },
-            { label: "วันที่ / Date:", value: formatDate(receipt.issueDate) },
-          ]}
-          styles={styles}
-        />
-        <CustomerSection
-          customerName={receipt.customerName}
-          customerAddress={receipt.customerAddress}
-          customerTaxId={receipt.customerTaxId}
-          customerPhone={receipt.customerPhone}
-          customerEmail={receipt.customerEmail}
-          customerContact={receipt.customerContact}
-          styles={styles}
-        />
-        <ItemsTable items={receipt.items} styles={styles} />
-        <TotalsSection
-          subtotal={receipt.subtotal}
-          vatRate={receipt.vatRate}
-          vatAmount={receipt.vatAmount}
-          grandTotal={receipt.grandTotal}
-          styles={styles}
-        />
-        <NotesSection notes={receipt.notes} termsSnapshot={receipt.termsSnapshot} styles={styles} />
-        <SignatureSection
-          leftLabel="(ผู้รับเงิน / Authorized Signature)"
-          rightLabel="(ผู้จ่ายเงิน / Paid by Customer)"
-          styles={styles}
-        />
-      </Page>
-    </Document>
+  return h(Document, null,
+    h(Page, { size: "A4", style: styles.page },
+      h(PdfHeader, { company, styles }),
+      h(View, { style: { marginBottom: 12, alignItems: "center" } },
+        h(Text, { style: styles.documentTitle }, title),
+        h(Text, { style: [styles.documentTitle, { fontSize: 12, marginTop: -8 }] }, subTitle),
+      ),
+      h(DocumentInfo, {
+        infoLines: [
+          { label: "เลขที่ / No:", value: receipt.rcNumber },
+          { label: "วันที่ / Date:", value: formatDate(receipt.issueDate) },
+        ],
+        styles,
+      }),
+      h(CustomerSection, {
+        customerName: receipt.customerName,
+        customerAddress: receipt.customerAddress,
+        customerTaxId: receipt.customerTaxId,
+        customerPhone: receipt.customerPhone,
+        customerEmail: receipt.customerEmail,
+        customerContact: receipt.customerContact,
+        styles,
+      }),
+      h(ItemsTable, { items: receipt.items, styles }),
+      h(TotalsSection, {
+        subtotal: receipt.subtotal,
+        vatRate: receipt.vatRate,
+        vatAmount: receipt.vatAmount,
+        grandTotal: receipt.grandTotal,
+        styles,
+      }),
+      h(NotesSection, { notes: receipt.notes, termsSnapshot: receipt.termsSnapshot, styles }),
+      h(SignatureSection, {
+        leftLabel: "(ผู้รับเงิน / Authorized Signature)",
+        rightLabel: "(ผู้จ่ายเงิน / Paid by Customer)",
+        styles,
+      }),
+    ),
   );
 }

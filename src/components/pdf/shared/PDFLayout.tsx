@@ -1,4 +1,4 @@
-import React from "react";
+import { createElement as h } from "react";
 import { Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import path from "path";
 import { formatNumber } from "./pdfStyles";
@@ -30,32 +30,28 @@ export interface PdfHeaderProps {
   styles: PDFStyles;
 }
 
+// ── All components use createElement() instead of JSX ──
+// Turbopack's JSX transform produces multi-child Text nodes that
+// @react-pdf/renderer silently drops on Vercel. Using createElement
+// with template-literal strings guarantees single-child Text nodes.
+
 export function PdfHeader({ company, styles }: PdfHeaderProps) {
   const logoSrc = company.logoPath ? path.join(process.cwd(), "public", company.logoPath) : null;
 
-  return (
-    <View style={styles.header}>
-      <View style={{ width: 60, height: 60 }}>
-        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        {logoSrc && <Image src={logoSrc} style={styles.logo} />}
-      </View>
-      <View style={styles.companyBlock}>
-        <Text style={styles.companyName}>{`${company.nameTh} `}</Text>
-        {company.nameEn && <Text style={styles.companyDetail}>{`${company.nameEn} `}</Text>}
-        <Text style={styles.companyDetail}>{`${company.address} `}</Text>
-        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-          {company.phone && (
-            <Text style={styles.companyDetail}>{`โทร: ${company.phone}   `}</Text>
-          )}
-          {company.email && (
-            <Text style={styles.companyDetail}>{`อีเมล: ${company.email}   `}</Text>
-          )}
-        </View>
-        {company.taxId && (
-          <Text style={styles.companyDetail}>{`เลขประจำตัวผู้เสียภาษี: ${company.taxId} `}</Text>
-        )}
-      </View>
-    </View>
+  return h(View, { style: styles.header },
+    h(View, { style: { width: 60, height: 60 } },
+      logoSrc ? h(Image, { src: logoSrc, style: styles.logo }) : null
+    ),
+    h(View, { style: styles.companyBlock },
+      h(Text, { style: styles.companyName }, `${company.nameTh} `),
+      company.nameEn ? h(Text, { style: styles.companyDetail }, `${company.nameEn} `) : null,
+      h(Text, { style: styles.companyDetail }, `${company.address} `),
+      h(View, { style: { flexDirection: "row", flexWrap: "wrap" } },
+        company.phone ? h(Text, { style: styles.companyDetail }, `โทร: ${company.phone}   `) : null,
+        company.email ? h(Text, { style: styles.companyDetail }, `อีเมล: ${company.email}   `) : null,
+      ),
+      company.taxId ? h(Text, { style: styles.companyDetail }, `เลขประจำตัวผู้เสียภาษี: ${company.taxId} `) : null,
+    ),
   );
 }
 
@@ -65,7 +61,7 @@ interface DocumentTitleProps {
 }
 
 export function DocumentTitle({ title, styles }: DocumentTitleProps) {
-  return <Text style={styles.documentTitle}>{`${title} `}</Text>;
+  return h(Text, { style: styles.documentTitle }, `${title} `);
 }
 
 interface DocumentInfoProps {
@@ -74,21 +70,19 @@ interface DocumentInfoProps {
 }
 
 export function DocumentInfo({ infoLines, styles }: DocumentInfoProps) {
-  return (
-    <View style={styles.infoRow}>
-      <View style={styles.infoGrid}>
-        {infoLines.map((line, i) => (
-          <View key={i} style={styles.infoLine}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.infoLabel}>{`${line.label} `}</Text>
-            </View>
-            <View style={{ minWidth: 100, alignItems: 'flex-end' }}>
-              <Text style={styles.infoValue}>{`${line.value || '-'} `}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </View>
+  return h(View, { style: styles.infoRow },
+    h(View, { style: styles.infoGrid },
+      ...infoLines.map((line, i) =>
+        h(View, { key: i, style: styles.infoLine },
+          h(View, { style: { flex: 1 } },
+            h(Text, { style: styles.infoLabel }, `${line.label} `),
+          ),
+          h(View, { style: { minWidth: 100, alignItems: "flex-end" } },
+            h(Text, { style: styles.infoValue }, `${line.value || "-"} `),
+          ),
+        )
+      ),
+    ),
   );
 }
 
@@ -111,26 +105,16 @@ export function CustomerSection({
   customerContact,
   styles,
 }: CustomerSectionProps) {
-  return (
-    <View style={styles.customerSection}>
-      <Text style={styles.sectionLabel}>{`เรียน / To `}</Text>
-      <Text style={styles.customerName}>{`${customerName} `}</Text>
-      {customerAddress && <Text style={styles.customerDetail}>{`${customerAddress} `}</Text>}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 2 }}>
-        {customerTaxId && (
-          <Text style={styles.customerDetail}>{`เลขภาษี / Tax ID: ${customerTaxId}    `}</Text>
-        )}
-        {customerPhone && (
-          <Text style={styles.customerDetail}>{`โทร / Tel: ${customerPhone}    `}</Text>
-        )}
-        {customerEmail && (
-          <Text style={styles.customerDetail}>{`อีเมล / Email: ${customerEmail}    `}</Text>
-        )}
-        {customerContact && (
-          <Text style={styles.customerDetail}>{`ผู้ติดต่อ / Contact: ${customerContact} `}</Text>
-        )}
-      </View>
-    </View>
+  return h(View, { style: styles.customerSection },
+    h(Text, { style: styles.sectionLabel }, `เรียน / To `),
+    h(Text, { style: styles.customerName }, `${customerName} `),
+    customerAddress ? h(Text, { style: styles.customerDetail }, `${customerAddress} `) : null,
+    h(View, { style: { flexDirection: "row", flexWrap: "wrap", marginTop: 2 } },
+      customerTaxId ? h(Text, { style: styles.customerDetail }, `เลขภาษี / Tax ID: ${customerTaxId}    `) : null,
+      customerPhone ? h(Text, { style: styles.customerDetail }, `โทร / Tel: ${customerPhone}    `) : null,
+      customerEmail ? h(Text, { style: styles.customerDetail }, `อีเมล / Email: ${customerEmail}    `) : null,
+      customerContact ? h(Text, { style: styles.customerDetail }, `ผู้ติดต่อ / Contact: ${customerContact} `) : null,
+    ),
   );
 }
 
@@ -140,32 +124,28 @@ interface ItemsTableProps {
 }
 
 export function ItemsTable({ items, styles }: ItemsTableProps) {
-  return (
-    <View style={styles.table}>
-      <View style={styles.tableHeader}>
-        <Text style={[styles.colNo, styles.headerText]}>{`# `}</Text>
-        <Text style={[styles.colProduct, styles.headerText]}>{`รายการสินค้า / Description `}</Text>
-        <Text style={[styles.colUnit, styles.headerText]}>{`หน่วย / Unit `}</Text>
-        <Text style={[styles.colQty, styles.headerText]}>{`จำนวน / Qty `}</Text>
-        <Text style={[styles.colPrice, styles.headerText]}>{`ราคา/หน่วย / Price `}</Text>
-        <Text style={[styles.colTotal, styles.headerText]}>{`รวม / Total `}</Text>
-      </View>
-      {items.map((item, i) => (
-        <View key={i} style={styles.tableRow} wrap={false}>
-          <Text style={styles.colNo}>{`${i + 1} `}</Text>
-          <View style={styles.colProduct}>
-            <Text style={styles.productName}>{`${item.productNameTh || '-'} `}</Text>
-            {item.productNameEn && (
-              <Text style={styles.productNameEn}>{`${item.productNameEn} `}</Text>
-            )}
-          </View>
-          <Text style={styles.colUnit}>{`${item.unit || '-'} `}</Text>
-          <Text style={styles.colQty}>{`${(item.quantity || 0).toLocaleString("en-US")} `}</Text>
-          <Text style={styles.colPrice}>{`฿${formatNumber(item.unitPrice || 0)} `}</Text>
-          <Text style={styles.colTotal}>{`฿${formatNumber(item.lineTotal || 0)} `}</Text>
-        </View>
-      ))}
-    </View>
+  return h(View, { style: styles.table },
+    h(View, { style: styles.tableHeader },
+      h(Text, { style: [styles.colNo, styles.headerText] }, `# `),
+      h(Text, { style: [styles.colProduct, styles.headerText] }, `รายการสินค้า / Description `),
+      h(Text, { style: [styles.colUnit, styles.headerText] }, `หน่วย / Unit `),
+      h(Text, { style: [styles.colQty, styles.headerText] }, `จำนวน / Qty `),
+      h(Text, { style: [styles.colPrice, styles.headerText] }, `ราคา/หน่วย / Price `),
+      h(Text, { style: [styles.colTotal, styles.headerText] }, `รวม / Total `),
+    ),
+    ...items.map((item, i) =>
+      h(View, { key: i, style: styles.tableRow, wrap: false },
+        h(Text, { style: styles.colNo }, `${i + 1} `),
+        h(View, { style: styles.colProduct },
+          h(Text, { style: styles.productName }, `${item.productNameTh || "-"} `),
+          item.productNameEn ? h(Text, { style: styles.productNameEn }, `${item.productNameEn} `) : null,
+        ),
+        h(Text, { style: styles.colUnit }, `${item.unit || "-"} `),
+        h(Text, { style: styles.colQty }, `${(item.quantity || 0).toLocaleString("en-US")} `),
+        h(Text, { style: styles.colPrice }, `฿${formatNumber(item.unitPrice || 0)} `),
+        h(Text, { style: styles.colTotal }, `฿${formatNumber(item.lineTotal || 0)} `),
+      )
+    ),
   );
 }
 
@@ -178,28 +158,26 @@ interface TotalsSectionProps {
 }
 
 export function TotalsSection({ subtotal, vatRate, vatAmount, grandTotal, styles }: TotalsSectionProps) {
-  return (
-    <View style={styles.totalsSection}>
-      <View style={styles.totalsBox}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{`ราคาก่อนภาษี / Subtotal `}</Text>
-          <Text style={styles.totalValue}>{`฿${formatNumber(subtotal)} `}</Text>
-        </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{`ภาษีมูลค่าเพิ่ม / VAT ${vatRate}% `}</Text>
-          <Text style={styles.totalValue}>{`฿${formatNumber(vatAmount)} `}</Text>
-        </View>
-        <View style={styles.grandTotalRow}>
-          <Text style={styles.grandTotalLabel}>{`รวมทั้งสิ้น / Grand Total `}</Text>
-          <Text style={styles.grandTotalValue}>{`฿${formatNumber(grandTotal)} `}</Text>
-        </View>
-        <View style={{ marginTop: 4, padding: 4, backgroundColor: "#f3f4f6", borderRadius: 2 }}>
-          <Text style={{ fontSize: 8, color: "#4b5563", textAlign: "center", fontWeight: "bold" }}>
-            {`(${bahtText(grandTotal)}) `}
-          </Text>
-        </View>
-      </View>
-    </View>
+  return h(View, { style: styles.totalsSection },
+    h(View, { style: styles.totalsBox },
+      h(View, { style: styles.totalRow },
+        h(Text, { style: styles.totalLabel }, `ราคาก่อนภาษี / Subtotal `),
+        h(Text, { style: styles.totalValue }, `฿${formatNumber(subtotal)} `),
+      ),
+      h(View, { style: styles.totalRow },
+        h(Text, { style: styles.totalLabel }, `ภาษีมูลค่าเพิ่ม / VAT ${vatRate}% `),
+        h(Text, { style: styles.totalValue }, `฿${formatNumber(vatAmount)} `),
+      ),
+      h(View, { style: styles.grandTotalRow },
+        h(Text, { style: styles.grandTotalLabel }, `รวมทั้งสิ้น / Grand Total `),
+        h(Text, { style: styles.grandTotalValue }, `฿${formatNumber(grandTotal)} `),
+      ),
+      h(View, { style: { marginTop: 4, padding: 4, backgroundColor: "#f3f4f6", borderRadius: 2 } },
+        h(Text, { style: { fontSize: 8, color: "#4b5563", textAlign: "center", fontWeight: "bold" } },
+          `(${bahtText(grandTotal)}) `
+        ),
+      ),
+    ),
   );
 }
 
@@ -212,21 +190,15 @@ interface NotesSectionProps {
 export function NotesSection({ notes, termsSnapshot, styles }: NotesSectionProps) {
   if (!notes && !termsSnapshot) return null;
 
-  return (
-    <View style={styles.notesSection} wrap={false}>
-      {notes && (
-        <View style={{ marginBottom: 8 }}>
-          <Text style={styles.notesLabel}>{`หมายเหตุ / Notes `}</Text>
-          <Text style={styles.notesText}>{`${notes} `}</Text>
-        </View>
-      )}
-      {termsSnapshot && (
-        <View>
-          <Text style={styles.notesLabel}>{`เงื่อนไขการขาย / Terms & Conditions `}</Text>
-          <Text style={styles.notesText}>{`${termsSnapshot} `}</Text>
-        </View>
-      )}
-    </View>
+  return h(View, { style: styles.notesSection, wrap: false },
+    notes ? h(View, { style: { marginBottom: 8 } },
+      h(Text, { style: styles.notesLabel }, `หมายเหตุ / Notes `),
+      h(Text, { style: styles.notesText }, `${notes} `),
+    ) : null,
+    termsSnapshot ? h(View, null,
+      h(Text, { style: styles.notesLabel }, `เงื่อนไขการขาย / Terms & Conditions `),
+      h(Text, { style: styles.notesText }, `${termsSnapshot} `),
+    ) : null,
   );
 }
 
@@ -237,18 +209,16 @@ interface SignatureSectionProps {
 }
 
 export function SignatureSection({ leftLabel, rightLabel, styles }: SignatureSectionProps) {
-  return (
-    <View style={styles.signatureSection} wrap={false}>
-      <View style={styles.signatureBox}>
-        <View style={styles.signatureLine} />
-        <Text style={styles.signatureLabel}>{`${leftLabel} `}</Text>
-        <Text style={styles.signatureDate}>{`วันที่ / Date _______________ `}</Text>
-      </View>
-      <View style={styles.signatureBox}>
-        <View style={styles.signatureLine} />
-        <Text style={styles.signatureLabel}>{`${rightLabel} `}</Text>
-        <Text style={styles.signatureDate}>{`วันที่ / Date _______________ `}</Text>
-      </View>
-    </View>
+  return h(View, { style: styles.signatureSection, wrap: false },
+    h(View, { style: styles.signatureBox },
+      h(View, { style: styles.signatureLine }),
+      h(Text, { style: styles.signatureLabel }, `${leftLabel} `),
+      h(Text, { style: styles.signatureDate }, `วันที่ / Date _______________ `),
+    ),
+    h(View, { style: styles.signatureBox },
+      h(View, { style: styles.signatureLine }),
+      h(Text, { style: styles.signatureLabel }, `${rightLabel} `),
+      h(Text, { style: styles.signatureDate }, `วันที่ / Date _______________ `),
+    ),
   );
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import { createElement as h } from "react";
 import { Document, Page } from "@react-pdf/renderer";
 import { registerPDFFonts } from "./shared/pdfFonts";
 import { createPDFStyles, formatDate } from "./shared/pdfStyles";
@@ -15,7 +15,6 @@ import {
   type LineItem,
 } from "./shared/PDFLayout";
 
-// PERFORMANCE: Register fonts at module load time
 registerPDFFonts();
 
 interface Billing {
@@ -46,7 +45,6 @@ interface Props {
 export function BillingPDFDocument({ billing, company }: Props) {
   const styles = createPDFStyles("#3b82f6");
 
-  // Build info lines dynamically
   const infoLines: Array<{ label: string; value: string }> = [
     { label: "เลขที่ / No:", value: billing.bnNumber },
   ];
@@ -61,36 +59,34 @@ export function BillingPDFDocument({ billing, company }: Props) {
     infoLines.push({ label: "ครบกำหนด / Due Date:", value: formatDate(billing.dueDate) });
   }
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <PdfHeader company={company} styles={styles} />
-        <DocumentTitle title="ใบวางบิล / BILLING NOTE" styles={styles} />
-        <DocumentInfo infoLines={infoLines} styles={styles} />
-        <CustomerSection
-          customerName={billing.customerName}
-          customerAddress={billing.customerAddress}
-          customerTaxId={billing.customerTaxId}
-          customerPhone={billing.customerPhone}
-          customerEmail={billing.customerEmail}
-          customerContact={billing.customerContact}
-          styles={styles}
-        />
-        <ItemsTable items={billing.items} styles={styles} />
-        <TotalsSection
-          subtotal={billing.subtotal}
-          vatRate={billing.vatRate}
-          vatAmount={billing.vatAmount}
-          grandTotal={billing.grandTotal}
-          styles={styles}
-        />
-        <NotesSection notes={billing.notes} termsSnapshot={billing.termsSnapshot} styles={styles} />
-        <SignatureSection
-          leftLabel="(ผู้วางบิล / Billed by)"
-          rightLabel="(ผู้รับบิล / Received by)"
-          styles={styles}
-        />
-      </Page>
-    </Document>
+  return h(Document, null,
+    h(Page, { size: "A4", style: styles.page },
+      h(PdfHeader, { company, styles }),
+      h(DocumentTitle, { title: "ใบวางบิล / BILLING NOTE", styles }),
+      h(DocumentInfo, { infoLines, styles }),
+      h(CustomerSection, {
+        customerName: billing.customerName,
+        customerAddress: billing.customerAddress,
+        customerTaxId: billing.customerTaxId,
+        customerPhone: billing.customerPhone,
+        customerEmail: billing.customerEmail,
+        customerContact: billing.customerContact,
+        styles,
+      }),
+      h(ItemsTable, { items: billing.items, styles }),
+      h(TotalsSection, {
+        subtotal: billing.subtotal,
+        vatRate: billing.vatRate,
+        vatAmount: billing.vatAmount,
+        grandTotal: billing.grandTotal,
+        styles,
+      }),
+      h(NotesSection, { notes: billing.notes, termsSnapshot: billing.termsSnapshot, styles }),
+      h(SignatureSection, {
+        leftLabel: "(ผู้วางบิล / Billed by)",
+        rightLabel: "(ผู้รับบิล / Received by)",
+        styles,
+      }),
+    ),
   );
 }
