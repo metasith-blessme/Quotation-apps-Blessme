@@ -161,8 +161,8 @@ export function ItemsTable({ items, styles }: ItemsTableProps) {
           </View>
           <Text style={styles.colUnit}>{item.unit || '-'} </Text>
           <Text style={styles.colQty}>{(item.quantity || 0).toLocaleString("en-US")} </Text>
-          <Text style={styles.colPrice}>{formatNumber(item.unitPrice || 0)} </Text>
-          <Text style={styles.colTotal}>{formatNumber(item.lineTotal || 0)} </Text>
+          <Text style={styles.colPrice}>฿{formatNumber(item.unitPrice || 0)} </Text>
+          <Text style={styles.colTotal}>฿{formatNumber(item.lineTotal || 0)} </Text>
         </View>
       ))}
     </View>
@@ -183,24 +183,15 @@ export function TotalsSection({ subtotal, vatRate, vatAmount, grandTotal, styles
       <View style={styles.totalsBox}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>ราคาก่อนภาษี / Subtotal </Text>
-          <View style={{ flexDirection: 'row' }}>
-            <Text style={styles.totalValue}>฿ </Text>
-            <Text style={styles.totalValue}>{formatNumber(subtotal)} </Text>
-          </View>
+          <Text style={styles.totalValue}>฿{formatNumber(subtotal)} </Text>
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>ภาษีมูลค่าเพิ่ม / VAT {vatRate}% </Text>
-          <View style={{ flexDirection: 'row' }}>
-            <Text style={styles.totalValue}>฿ </Text>
-            <Text style={styles.totalValue}>{formatNumber(vatAmount)} </Text>
-          </View>
+          <Text style={styles.totalValue}>฿{formatNumber(vatAmount)} </Text>
         </View>
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>รวมทั้งสิ้น / Grand Total </Text>
-          <View style={{ flexDirection: 'row' }}>
-            <Text style={styles.grandTotalValue}>฿ </Text>
-            <Text style={styles.grandTotalValue}>{formatNumber(grandTotal)} </Text>
-          </View>
+          <Text style={styles.grandTotalValue}>฿{formatNumber(grandTotal)} </Text>
         </View>
         <View style={{ marginTop: 4, padding: 4, backgroundColor: "#f3f4f6", borderRadius: 2 }}>
           <Text style={{ fontSize: 8, color: "#4b5563", textAlign: "center", fontWeight: "bold" }}>
