@@ -27,6 +27,7 @@ interface Invoice {
   customerAddress?: string | null;
   customerTaxId?: string | null;
   customerPhone?: string | null;
+  customerEmail?: string | null;
   customerContact?: string | null;
   subtotal: number;
   vatRate: number;
@@ -71,6 +72,7 @@ export function InvoicePDFDocument({ invoice, company }: Props) {
           customerAddress={invoice.customerAddress}
           customerTaxId={invoice.customerTaxId}
           customerPhone={invoice.customerPhone}
+          customerEmail={invoice.customerEmail}
           customerContact={invoice.customerContact}
           styles={styles}
         />

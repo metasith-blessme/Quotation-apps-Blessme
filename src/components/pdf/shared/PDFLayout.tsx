@@ -97,6 +97,7 @@ interface CustomerSectionProps {
   customerAddress?: string | null;
   customerTaxId?: string | null;
   customerPhone?: string | null;
+  customerEmail?: string | null;
   customerContact?: string | null;
   styles: PDFStyles;
 }
@@ -106,6 +107,7 @@ export function CustomerSection({
   customerAddress,
   customerTaxId,
   customerPhone,
+  customerEmail,
   customerContact,
   styles,
 }: CustomerSectionProps) {
@@ -120,6 +122,9 @@ export function CustomerSection({
         )}
         {customerPhone && (
           <Text style={styles.customerDetail}>โทร / Tel: {customerPhone}    </Text>
+        )}
+        {customerEmail && (
+          <Text style={styles.customerDetail}>อีเมล / Email: {customerEmail}    </Text>
         )}
         {customerContact && (
           <Text style={styles.customerDetail}>ผู้ติดต่อ / Contact: {customerContact} </Text>

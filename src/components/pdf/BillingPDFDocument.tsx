@@ -27,6 +27,7 @@ interface Billing {
   customerAddress?: string | null;
   customerTaxId?: string | null;
   customerPhone?: string | null;
+  customerEmail?: string | null;
   customerContact?: string | null;
   subtotal: number;
   vatRate: number;
@@ -71,6 +72,7 @@ export function BillingPDFDocument({ billing, company }: Props) {
           customerAddress={billing.customerAddress}
           customerTaxId={billing.customerTaxId}
           customerPhone={billing.customerPhone}
+          customerEmail={billing.customerEmail}
           customerContact={billing.customerContact}
           styles={styles}
         />

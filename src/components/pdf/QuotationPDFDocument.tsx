@@ -26,6 +26,7 @@ interface Quotation {
   customerAddress?: string | null;
   customerTaxId?: string | null;
   customerPhone?: string | null;
+  customerEmail?: string | null;
   customerContact?: string | null;
   subtotal: number;
   vatRate: number;
@@ -62,6 +63,7 @@ export function QuotationPDFDocument({ quotation, company }: Props) {
           customerAddress={quotation.customerAddress}
           customerTaxId={quotation.customerTaxId}
           customerPhone={quotation.customerPhone}
+          customerEmail={quotation.customerEmail}
           customerContact={quotation.customerContact}
           styles={styles}
         />

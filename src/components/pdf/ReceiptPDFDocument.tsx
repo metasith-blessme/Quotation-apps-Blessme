@@ -25,6 +25,7 @@ interface Receipt {
   customerAddress?: string | null;
   customerTaxId?: string | null;
   customerPhone?: string | null;
+  customerEmail?: string | null;
   customerContact?: string | null;
   subtotal: number;
   vatRate: number;
@@ -72,6 +73,7 @@ export function ReceiptPDFDocument({ receipt, company }: Props) {
           customerAddress={receipt.customerAddress}
           customerTaxId={receipt.customerTaxId}
           customerPhone={receipt.customerPhone}
+          customerEmail={receipt.customerEmail}
           customerContact={receipt.customerContact}
           styles={styles}
         />
