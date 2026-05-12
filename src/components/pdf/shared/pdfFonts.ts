@@ -28,7 +28,7 @@ export function registerPDFFonts() {
     const hasThaiChars = /[\u0E00-\u0E7F]/.test(word);
 
     if (!hasThaiChars) {
-      return [];
+      return [word];
     }
 
     if (word.length > 20) {
