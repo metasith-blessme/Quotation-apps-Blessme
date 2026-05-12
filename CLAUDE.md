@@ -32,6 +32,8 @@ npx prisma db seed        # seed with ts-node
 Quotation (DRAFT → SENT → ACCEPTED)
   → Invoice (UNPAID → PAID → OVERDUE → CANCELLED)     POST /api/quotations/[id]/convert-to-invoice
     → Billing Note (PENDING → COLLECTED → CANCELLED)   POST /api/invoices/[id]/convert-to-billing
+    → Receipt (WAITING → ISSUED → CANCELLED)           POST /api/invoices/[id]/convert-to-receipt
+                                                      POST /api/billings/[id]/convert-to-receipt
 ```
 Each conversion copies all line items and customer data. If already converted, returns the existing record.
 
@@ -39,8 +41,8 @@ Each conversion copies all line items and customer data. If already converted, r
 - **Remote**: Turso (libsql) via `DATABASE_URL` + `TURSO_AUTH_TOKEN`
 - **Local dev**: falls back to `file:./dev.db` (SQLite)
 - Prisma singleton: `src/lib/db.ts`
-- Auto-numbering sequences: `QTSequence`, `INVSequence`, `BNSequence` — one row per year, managed by `src/lib/qt-number.ts`, `inv-number.ts`, `bn-number.ts`
-- Indexes on `status`, `createdById`, `createdAt` for Quotation, Invoice, Billing
+- Auto-numbering sequences: `QTSequence`, `INVSequence`, `BNSequence`, `RCSequence` — one row per year, managed by `src/lib/qt-number.ts`, `inv-number.ts`, `bn-number.ts`, `rc-number.ts`
+- Indexes on `status`, `createdById`, `createdAt` for Quotation, Invoice, Billing, Receipt
 
 ### API routes pattern
 All routes in `src/app/api/` follow this structure:
@@ -50,29 +52,36 @@ All routes in `src/app/api/` follow this structure:
    - `quotation.schema.ts` — full document validation
    - `invoice.schema.ts` — status enum (UNPAID | PAID | OVERDUE | CANCELLED)
    - `billing.schema.ts` — status enum (PENDING | COLLECTED | CANCELLED)
+   - `receipt.schema.ts` — status enum (WAITING | ISSUED | CANCELLED)
    - `product.schema.ts`, `client.schema.ts` — entity validation
 4. **Server-side financial computation** — `lineTotal = quantity * unitPrice` recomputed on every write (never trust client-sent totals)
 5. PDF routes (`/api/*/[id]/pdf`) call generators in `src/lib/pdf.ts`
 
 ### PDF generation
-`src/lib/pdf.ts` exports `generateQuotationPDF`, `generateInvoicePDF`, `generateBillingPDF`. Each fetches the record + cached company settings (1-min TTL via `src/lib/company-cache.ts`), then renders to buffer.
+`src/lib/pdf.ts` exports `generateQuotationPDF`, `generateInvoicePDF`, `generateBillingPDF`, `generateReceiptPDF`. Each fetches the record + cached company settings (1-min TTL via `src/lib/company-cache.ts`), then renders to buffer.
+
+**Commercial Grade PDF Fixes (May 12):**
+- **Arabic Numerals:** Force `en-US` formatting for numbers and `th-TH-u-nu-latn` for dates to ensure numerals render reliably in server environments.
+- **Structural Integrity:** Wrap numerical values in separate `View` containers to prevent clipping by Thai text.
+- **Thai Baht Text:** Added `bahtText` utility in `src/lib/thai-text.ts` for professional currency text.
 
 **Shared components** in `src/components/pdf/shared/`:
 - `PDFLayout.tsx` — PdfHeader, CustomerSection, ItemsTable, TotalsSection, NotesSection, SignatureSection
-- `pdfStyles.ts` — `createPDFStyles(accentColor)` factory (green for Quotation, blue for Invoice/Billing)
+- `pdfStyles.ts` — `createPDFStyles(accentColor)` factory (green for Quotation, blue for Invoice/Billing, indigo for Receipt)
 - `pdfFonts.ts` — `registerPDFFonts()` with Thai hyphenation callback
 
 **Per-document components** (~85-94 lines each):
 - `QuotationPDFDocument.tsx` — green accent (#16a34a)
 - `InvoicePDFDocument.tsx` — blue accent (#3b82f6)
 - `BillingPDFDocument.tsx` — blue accent (#3b82f6)
+- `ReceiptPDFDocument.tsx` — indigo accent (#6366f1)
 
 **Thai text in PDFs — known pitfalls:**
 - Font: Sarabun (`public/fonts/Sarabun-*.ttf`), registered in `pdfFonts.ts`
 - Hyphenation callback must never break Thai combining marks (U+0E31, U+0E34–U+0E3A, U+0E47–U+0E4E)
 - `@react-pdf/renderer` clips the last character of Thai text — always add a trailing space after `{text} ` in Text elements
 - Use `paddingRight` on text styles for additional clipping protection
-- Thai text utilities: `src/lib/thai-text.ts` (word boundary detection, combining mark validation)
+- Thai text utilities: `src/lib/thai-text.ts` (word boundary detection, combining mark validation, `bahtText`)
 
 **Adding a new PDF type:**
 1. Import shared components from `src/components/pdf/shared/`

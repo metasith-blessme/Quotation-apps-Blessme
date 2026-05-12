@@ -1,12 +1,12 @@
 # Project Overview: BlessMe Topping Quotation App
 
 ## Project Status
-Full-featured document management system for Quotations, Invoices, and Billing Notes, built for **BlessMe Topping Co., Ltd.** Production-deployed on Vercel with Turso database.
+Full-featured document management system for Quotations, Invoices, Billing Notes, and Receipts, built for **BlessMe Topping Co., Ltd.** Production-deployed on Vercel with Turso database.
 
 ## Key Features
-- **Document Lifecycle:** Quotation → Invoice → Billing Note with one-click conversion
+- **Document Lifecycle:** Quotation → Invoice → Billing Note → Receipt with one-click conversion
 - **Bilingual Interface:** Thai primary, English secondary across UI and PDF documents
-- **PDF Generation:** Professional bilingual PDFs with Sarabun font, shared component architecture, and Thai text handling
+- **Commercial Grade PDF:** Professional bilingual PDFs with Sarabun font, shared component architecture, robust Arabic numeral formatting, and Thai Baht Text conversion
 - **Role-Based Access:** ADMIN (full access) and SALES (own documents only) via NextAuth.js
 - **Data Management:** Clients, Products, and Company Settings modules
 - **Server-Side Financial Integrity:** Line totals recomputed server-side on every write
@@ -21,6 +21,15 @@ Full-featured document management system for Quotations, Invoices, and Billing N
 - **Caching:** Company settings cached with 1-minute TTL for PDF generation
 
 ## Changelog
+
+### May 12, 2026 — Receipt Module & Commercial Grade PDF Fixes
+- **Receipt Functionality:** Added Receipt model and module with "Waiting/Issued" status toggle.
+- **Commercial Grade PDF:**
+    - Forced Arabic numerals (latn) in all PDF values to fix server-side rendering issues.
+    - Implemented structural integrity fixes (View wrapping) to prevent numerical data clipping by Thai text.
+    - Added professional Thai Baht Text conversion (e.g. "หนึ่งพันบาทถ้วน") for totals.
+    - Added smart document titling based on VAT (Receipt/Tax Invoice vs Receipt).
+- **Dashboard:** Integrated Receipt statistics and recent activity feed.
 
 ### April 20, 2026 — PDF Thai Text Clipping Fix
 - Fixed customer name truncation in PDFs (closing parenthesis clipped on long Thai names)
