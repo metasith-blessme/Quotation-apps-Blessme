@@ -1,73 +1,60 @@
+import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
-import { Font, Document, Page, Text, View } from "@react-pdf/renderer";
-
-Font.register({
-  family: "Sarabun",
-  fonts: [
-    { src: "https://fonts.gstatic.com/s/sarabun/v17/DtVjJx26TKEr37c9WBI.ttf", fontWeight: "normal" },
-    { src: "https://fonts.gstatic.com/s/sarabun/v17/DtVmJx26TKEr37c9YK5sulw.ttf", fontWeight: "bold" },
-  ],
-});
+import { ReceiptPDFDocument } from "@/components/pdf/ReceiptPDFDocument";
 
 export async function GET() {
-  const h = createElement;
+  // Use hardcoded data (same as the real receipt) to isolate the issue
+  const receipt = {
+    rcNumber: "RC-2026-001",
+    issueDate: "2026-05-12T04:05:44.558Z",
+    customerName: "บริษัท กันยารัตน์ คอร์ปอเรชั่น จำกัด (สำนักงานใหญ่)",
+    customerAddress: "41/1 หมู่ที่4 ตำบลกระทุ่มล้ม อำเภอสามพราน จังหวัดนครปฐม 73220",
+    customerTaxId: "0-7355-63002-42-3",
+    customerPhone: "0966910156",
+    customerEmail: "",
+    customerContact: "นายภัคพล ทิพย์ปัญญา",
+    subtotal: 80,
+    vatRate: 7,
+    vatAmount: 5.6,
+    grandTotal: 85.6,
+    notes: "",
+    termsSnapshot: "",
+    items: [
+      {
+        productNameTh: "เม็ดป็อปถั่วแดง",
+        productNameEn: null,
+        unit: "ลัง",
+        quantity: 1,
+        unitPrice: 80,
+        lineTotal: 80,
+      },
+    ],
+  };
 
-  // Test different combinations of Thai + Latin/digits
-  const doc = h(Document, null,
-    h(Page, { size: "A4", style: { fontFamily: "Sarabun", fontSize: 12, padding: 40 } },
-      // Test 1: Pure digits (like document number)
-      h(Text, null, `Pure digits: RC-2026-001 `),
-      // Test 2: Pure email
-      h(Text, null, `Pure email: blessme.team@gmail.com `),
-      // Test 3: Phone number
-      h(Text, null, `Phone: 0971378904 `),
-      // Test 4: Date
-      h(Text, null, `Date: 12/05/2569 `),
-      // Test 5: Thai label + digits (like company phone)
-      h(Text, null, `โทร: 0971378904 `),
-      // Test 6: Tax ID
-      h(Text, null, `เลขภาษี: 0105562041374 `),
-      // Test 7: Simulating DocumentInfo structure
-      h(View, { style: { flexDirection: "row", justifyContent: "flex-end" } },
-        h(View, { style: { width: 220 } },
-          h(View, { style: { flexDirection: "row", justifyContent: "space-between" } },
-            h(View, { style: { flex: 1 } },
-              h(Text, { style: { fontSize: 9 } }, `เลขที่ / No: `),
-            ),
-            h(View, { style: { minWidth: 100, alignItems: "flex-end" } },
-              h(Text, { style: { fontWeight: "bold", fontSize: 9 } }, `RC-2026-001 `),
-            ),
-          ),
-          h(View, { style: { flexDirection: "row", justifyContent: "space-between" } },
-            h(View, { style: { flex: 1 } },
-              h(Text, { style: { fontSize: 9 } }, `วันที่ / Date: `),
-            ),
-            h(View, { style: { minWidth: 100, alignItems: "flex-end" } },
-              h(Text, { style: { fontWeight: "bold", fontSize: 9 } }, `12/05/2569 `),
-            ),
-          ),
-        ),
-      ),
-      // Test 8: Quantity in table-like structure
-      h(View, { style: { flexDirection: "row", marginTop: 10 } },
-        h(Text, { style: { width: 30 } }, `1 `),
-        h(Text, { style: { flex: 1 } }, `เม็ดป็อปถั่วแดง `),
-        h(Text, { style: { width: 50, textAlign: "center" } }, `ลัง `),
-        h(Text, { style: { width: 75, textAlign: "right" } }, `1 `),
-        h(Text, { style: { width: 85, textAlign: "right" } }, `฿80.00 `),
-        h(Text, { style: { width: 85, textAlign: "right" } }, `฿80.00 `),
-      ),
-    )
-  );
+  const company = {
+    nameTh: "บริษัท เฮิร์บแคร์นภา จำกัด",
+    nameEn: null,
+    address: "193/1 หมู่ที่ 13 ตำบลเขาสมอคอน อำเภอท่าวุ้ง จ.ลพบุรี 15180",
+    taxId: "0105562041374",
+    phone: "0971378904",
+    email: "blessme.team@gmail.com",
+    logoPath: null,
+  };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(doc as any);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const element = createElement(ReceiptPDFDocument as any, { receipt, company });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buffer = await renderToBuffer(element as any);
 
-  return new Response(Buffer.from(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="test.pdf"',
-    },
-  });
+    return new Response(Buffer.from(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="test-receipt.pdf"',
+      },
+    });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
