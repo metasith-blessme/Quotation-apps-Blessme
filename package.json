@@ -14,7 +14,7 @@
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.2",
+    "@libsql/client": "^0.17.3",
     "@prisma/adapter-libsql": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@react-pdf/renderer": "^4.3.2",
