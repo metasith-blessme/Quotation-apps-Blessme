@@ -1,17 +1,38 @@
 import { Font } from "@react-pdf/renderer";
 import path from "path";
+import fs from "fs";
+
+/**
+ * Resolve font file path — works on both local dev and Vercel serverless.
+ * Vercel bundles files via outputFileTracingIncludes but the path may differ.
+ */
+function resolveFontPath(filename: string): string {
+  const candidates = [
+    path.join(process.cwd(), "public", "fonts", filename),
+    path.join(process.cwd(), ".next", "server", "public", "fonts", filename),
+    path.join(__dirname, "..", "..", "..", "..", "public", "fonts", filename),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  console.error(`[PDF Font] Could not find ${filename} in any of:`, candidates);
+  return candidates[0]; // fallback to default path
+}
 
 /**
  * Register fonts and hyphenation callback for Thai text support.
  * Call this once at module load time to hoist font registration outside of components.
  */
 export function registerPDFFonts() {
-  // Register Thai font
+  // Register Thai font with robust path resolution
+  const regularPath = resolveFontPath("Sarabun-Regular.ttf");
+  const boldPath = resolveFontPath("Sarabun-Bold.ttf");
+
   Font.register({
     family: "Sarabun",
     fonts: [
-      { src: path.join(process.cwd(), "public/fonts/Sarabun-Regular.ttf"), fontWeight: "normal" },
-      { src: path.join(process.cwd(), "public/fonts/Sarabun-Bold.ttf"), fontWeight: "bold" },
+      { src: regularPath, fontWeight: "normal" },
+      { src: boldPath, fontWeight: "bold" },
     ],
   });
 

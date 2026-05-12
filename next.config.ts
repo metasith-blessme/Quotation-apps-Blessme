@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
     "bcryptjs",
     "@react-pdf/renderer",
   ],
+  outputFileTracingIncludes: {
+    "/api/quotations/\\[id\\]/pdf": ["./public/fonts/**/*"],
+    "/api/invoices/\\[id\\]/pdf": ["./public/fonts/**/*"],
+    "/api/billings/\\[id\\]/pdf": ["./public/fonts/**/*"],
+    "/api/receipts/\\[id\\]/pdf": ["./public/fonts/**/*"],
+  },
   async headers() {
     return [
       {
