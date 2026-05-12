@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page } from "@react-pdf/renderer";
+import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { registerPDFFonts } from "./shared/pdfFonts";
 import { createPDFStyles, formatDate } from "./shared/pdfStyles";
 import {
