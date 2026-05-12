@@ -3,20 +3,29 @@ import path from "path";
 import fs from "fs";
 
 /**
- * Resolve font file path — works on both local dev and Vercel serverless.
- * Vercel bundles files via outputFileTracingIncludes but the path may differ.
+ * Get font source — file path locally, URL on Vercel.
+ * Vercel serverless functions don't have public/ on their filesystem,
+ * but fonts ARE served via CDN at the app URL.
  */
-function resolveFontPath(filename: string): string {
-  const candidates = [
-    path.join(process.cwd(), "public", "fonts", filename),
-    path.join(process.cwd(), ".next", "server", "public", "fonts", filename),
-    path.join(__dirname, "..", "..", "..", "..", "public", "fonts", filename),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+function getFontSrc(filename: string): string {
+  // Try local file first
+  const localPath = path.join(process.cwd(), "public", "fonts", filename);
+  if (fs.existsSync(localPath)) {
+    return localPath;
   }
-  console.error(`[PDF Font] Could not find ${filename} in any of:`, candidates);
-  return candidates[0]; // fallback to default path
+
+  // On Vercel: load from CDN via the app's own URL
+  const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    || process.env.VERCEL_URL;
+  if (vercelUrl) {
+    const url = `https://${vercelUrl}/fonts/${filename}`;
+    console.log(`[PDF Font] Loading from CDN: ${url}`);
+    return url;
+  }
+
+  // Last resort: return local path and let @react-pdf handle the error
+  console.error(`[PDF Font] Cannot resolve ${filename} — no local file, no VERCEL_URL`);
+  return localPath;
 }
 
 /**
@@ -24,25 +33,19 @@ function resolveFontPath(filename: string): string {
  * Call this once at module load time to hoist font registration outside of components.
  */
 export function registerPDFFonts() {
-  // Register Thai font with robust path resolution
-  const regularPath = resolveFontPath("Sarabun-Regular.ttf");
-  const boldPath = resolveFontPath("Sarabun-Bold.ttf");
-
   Font.register({
     family: "Sarabun",
     fonts: [
-      { src: regularPath, fontWeight: "normal" },
-      { src: boldPath, fontWeight: "bold" },
+      { src: getFontSrc("Sarabun-Regular.ttf"), fontWeight: "normal" },
+      { src: getFontSrc("Sarabun-Bold.ttf"), fontWeight: "bold" },
     ],
   });
 
   // Smart hyphenation for Thai text: never break combining marks
   Font.registerHyphenationCallback((word) => {
-    // Check if word contains Thai characters
     const hasThaiChars = /[\u0E00-\u0E7F]/.test(word);
 
     if (!hasThaiChars) {
-      // For non-Thai words, return empty array to use default hyphenation
       return [];
     }
 
@@ -57,7 +60,6 @@ export function registerPDFFonts() {
 
         current += char;
 
-        // Break at ~15 chars, but only if next char is not a combining mark
         if (current.length >= 15 && !isCombiningMark && i < word.length - 1) {
           const nextChar = word[i + 1];
           if (!/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(nextChar)) {
