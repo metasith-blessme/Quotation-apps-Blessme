@@ -79,8 +79,12 @@ export function DocumentInfo({ infoLines, styles }: DocumentInfoProps) {
       <View style={styles.infoGrid}>
         {infoLines.map((line, i) => (
           <View key={i} style={styles.infoLine}>
-            <Text style={styles.infoLabel}>{line.label} </Text>
-            <Text style={styles.infoValue}>{line.value} </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>{line.label} </Text>
+            </View>
+            <View style={{ minWidth: 100, alignItems: 'flex-end' }}>
+              <Text style={styles.infoValue}>{line.value || '-'} </Text>
+            </View>
           </View>
         ))}
       </View>
@@ -145,15 +149,15 @@ export function ItemsTable({ items, styles }: ItemsTableProps) {
         <View key={i} style={styles.tableRow} wrap={false}>
           <Text style={styles.colNo}>{i + 1} </Text>
           <View style={styles.colProduct}>
-            <Text style={styles.productName}>{item.productNameTh} </Text>
+            <Text style={styles.productName}>{item.productNameTh || '-'} </Text>
             {item.productNameEn && (
               <Text style={styles.productNameEn}>{item.productNameEn} </Text>
             )}
           </View>
-          <Text style={styles.colUnit}>{item.unit} </Text>
-          <Text style={styles.colQty}>{item.quantity.toLocaleString("th-TH")} </Text>
-          <Text style={styles.colPrice}>{formatNumber(item.unitPrice)} </Text>
-          <Text style={styles.colTotal}>{formatNumber(item.lineTotal)} </Text>
+          <Text style={styles.colUnit}>{item.unit || '-'} </Text>
+          <Text style={styles.colQty}>{(item.quantity || 0).toLocaleString("en-US")} </Text>
+          <Text style={styles.colPrice}>{formatNumber(item.unitPrice || 0)} </Text>
+          <Text style={styles.colTotal}>{formatNumber(item.lineTotal || 0)} </Text>
         </View>
       ))}
     </View>
@@ -174,15 +178,24 @@ export function TotalsSection({ subtotal, vatRate, vatAmount, grandTotal, styles
       <View style={styles.totalsBox}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>ราคาก่อนภาษี / Subtotal </Text>
-          <Text style={styles.totalValue}>฿ {formatNumber(subtotal)} </Text>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.totalValue}>฿ </Text>
+            <Text style={styles.totalValue}>{formatNumber(subtotal)} </Text>
+          </View>
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>ภาษีมูลค่าเพิ่ม / VAT {vatRate}% </Text>
-          <Text style={styles.totalValue}>฿ {formatNumber(vatAmount)} </Text>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.totalValue}>฿ </Text>
+            <Text style={styles.totalValue}>{formatNumber(vatAmount)} </Text>
+          </View>
         </View>
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>รวมทั้งสิ้น / Grand Total </Text>
-          <Text style={styles.grandTotalValue}>฿ {formatNumber(grandTotal)} </Text>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.grandTotalValue}>฿ </Text>
+            <Text style={styles.grandTotalValue}>{formatNumber(grandTotal)} </Text>
+          </View>
         </View>
         <View style={{ marginTop: 4, padding: 4, backgroundColor: "#f3f4f6", borderRadius: 2 }}>
           <Text style={{ fontSize: 8, color: "#4b5563", textAlign: "center", fontWeight: "bold" }}>

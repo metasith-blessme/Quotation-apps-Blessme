@@ -45,7 +45,7 @@ export async function POST(
     const receipt = await prisma.receipt.create({
       data: {
         rcNumber,
-        status: "COMPLETED",
+        status: "WAITING",
         createdById: session.user.id,
         invoiceId: invoice.id,
         invoiceNumber: invoice.invNumber,

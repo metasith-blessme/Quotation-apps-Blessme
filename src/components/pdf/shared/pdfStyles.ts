@@ -83,16 +83,18 @@ export function createPDFStyles(accentColor: string) {
 /**
  * Utility functions for formatting used in all PDFs.
  * Added robust fallbacks for environments with limited Intl support.
+ * Forces Arabic numerals (latn) to ensure compatibility with all PDF readers.
  */
 export function formatNumber(n: number): string {
   try {
-    return new Intl.NumberFormat("th-TH", { 
+    // FORCE latn numbering system to avoid Thai digits causing rendering issues
+    return new Intl.NumberFormat("en-US", { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }).format(n);
   } catch (err) {
     // Fallback for missing locale data
-    return n.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    return (n || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
   }
 }
 
@@ -100,13 +102,15 @@ export function formatDate(d: Date | string): string {
   if (!d) return "-";
   const date = new Date(d);
   try {
-    return new Intl.DateTimeFormat("th-TH", { 
+    // Return Thai localized date but with Arabic numerals
+    // Note: 'th-TH' with 'latn' numbering system
+    return new Intl.DateTimeFormat("th-TH-u-nu-latn", { 
       year: "numeric", 
       month: "2-digit", 
       day: "2-digit" 
     }).format(date);
   } catch (err) {
-    // Fallback: DD/MM/YYYY
+    // Fallback: DD/MM/YYYY (Buddhist Year)
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear() + 543; // Thai Buddhist year

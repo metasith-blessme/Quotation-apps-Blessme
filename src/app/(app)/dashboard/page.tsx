@@ -31,11 +31,12 @@ const BN_STATUS_LABELS: Record<string, string> = {
   PENDING: "รอเก็บเงิน", COLLECTED: "เก็บแล้ว", CANCELLED: "ยกเลิก",
 };
 const RC_STATUS_COLORS: Record<string, string> = {
-  COMPLETED: "bg-green-100 text-green-700",
+  WAITING: "bg-orange-100 text-orange-700",
+  ISSUED: "bg-green-100 text-green-700",
   CANCELLED: "bg-gray-100 text-gray-500",
 };
 const RC_STATUS_LABELS: Record<string, string> = {
-  COMPLETED: "เรียบร้อย", CANCELLED: "ยกเลิก",
+  WAITING: "รอออก", ISSUED: "ออกแล้ว", CANCELLED: "ยกเลิก",
 };
 
 export default async function DashboardPage() {
@@ -126,7 +127,7 @@ export default async function DashboardPage() {
   };
   const rcStats = {
     total: rcCountsByStatus.reduce((sum, item) => sum + item._count, 0),
-    completed: rcCountsByStatus.find((item) => item.status === "COMPLETED")?._count ?? 0,
+    issued: rcCountsByStatus.find((item) => item.status === "ISSUED")?._count ?? 0,
   };
   const acceptedTotal = acceptedThisMonthAgg._sum.grandTotal ?? 0;
 
@@ -154,7 +155,7 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">ใบเสร็จ / Receipts</p>
           <p className="text-2xl font-bold text-gray-700">{rcStats.total}</p>
-          <p className="text-sm text-indigo-600 mt-1">{rcStats.completed} เรียบร้อย</p>
+          <p className="text-sm text-indigo-600 mt-1">{rcStats.issued} ออกใบเสร็จแล้ว</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">ยอดอนุมัติเดือนนี้</p>

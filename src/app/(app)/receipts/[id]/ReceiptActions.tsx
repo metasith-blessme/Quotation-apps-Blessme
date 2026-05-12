@@ -17,7 +17,8 @@ export default function ReceiptActions({ id, status }: Props) {
   const isAdmin = session?.user?.role === "ADMIN";
 
   const updateStatus = async (newStatus: string) => {
-    if (!confirm(`ต้องการเปลี่ยนสถานะเป็น ${newStatus === "CANCELLED" ? "ยกเลิก" : "เรียบร้อย"} ใช่หรือไม่?`)) return;
+    const label = newStatus === "CANCELLED" ? "ยกเลิก" : newStatus === "ISSUED" ? "ออกใบเสร็จแล้ว" : "รอการออก";
+    if (!confirm(`ต้องการเปลี่ยนสถานะเป็น ${label} ใช่หรือไม่?`)) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/receipts/${id}`, {
@@ -60,7 +61,27 @@ export default function ReceiptActions({ id, status }: Props) {
         <span>📄</span> พิมพ์ PDF
       </a>
 
-      {status === "COMPLETED" && (
+      {status === "WAITING" && (
+        <button
+          onClick={() => updateStatus("ISSUED")}
+          disabled={loading}
+          className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
+        >
+          ✓ คลิกเพื่อออกใบเสร็จ (Issued)
+        </button>
+      )}
+
+      {status === "ISSUED" && (
+        <button
+          onClick={() => updateStatus("WAITING")}
+          disabled={loading}
+          className="px-4 py-2 bg-orange-50 text-orange-700 border border-orange-200 text-sm font-bold rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50"
+        >
+          ↩ เปลี่ยนเป็นรอออก (Waiting)
+        </button>
+      )}
+
+      {status !== "CANCELLED" && (
         <button
           onClick={() => updateStatus("CANCELLED")}
           disabled={loading}
@@ -72,7 +93,7 @@ export default function ReceiptActions({ id, status }: Props) {
 
       {status === "CANCELLED" && (
         <button
-          onClick={() => updateStatus("COMPLETED")}
+          onClick={() => updateStatus("WAITING")}
           disabled={loading}
           className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
         >

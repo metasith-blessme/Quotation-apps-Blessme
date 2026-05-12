@@ -46,14 +46,20 @@ export function ReceiptPDFDocument({ receipt, company }: Props) {
 
   const isTaxInvoice = receipt.vatRate > 0;
   const title = isTaxInvoice
-    ? "ใบเสร็จรับเงิน / ใบกำกับภาษี\nRECEIPT / TAX INVOICE"
-    : "ใบเสร็จรับเงิน\nRECEIPT";
+    ? "ใบเสร็จรับเงิน / ใบกำกับภาษี "
+    : "ใบเสร็จรับเงิน ";
+  const subTitle = isTaxInvoice
+    ? "RECEIPT / TAX INVOICE "
+    : "RECEIPT ";
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <PdfHeader company={company} styles={styles} />
-        <DocumentTitle title={title} styles={styles} />
+        <View style={{ marginBottom: 12, alignItems: 'center' }}>
+          <Text style={styles.documentTitle}>{title}</Text>
+          <Text style={[styles.documentTitle, { fontSize: 12, marginTop: -8 }]}>{subTitle}</Text>
+        </View>
         <DocumentInfo
           infoLines={[
             { label: "เลขที่ / No:", value: receipt.rcNumber },

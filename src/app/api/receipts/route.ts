@@ -27,9 +27,15 @@ export async function GET(req: Request) {
       total: await prisma.receipt.count({
         where: !isAdmin ? { createdById: session.user.id } : {},
       }),
-      completed: await prisma.receipt.count({
+      waiting: await prisma.receipt.count({
         where: {
-          status: "COMPLETED",
+          status: "WAITING",
+          ...(!isAdmin ? { createdById: session.user.id } : {}),
+        },
+      }),
+      issued: await prisma.receipt.count({
+        where: {
+          status: "ISSUED",
           ...(!isAdmin ? { createdById: session.user.id } : {}),
         },
       }),

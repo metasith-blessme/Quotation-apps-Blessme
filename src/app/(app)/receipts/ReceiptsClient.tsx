@@ -5,12 +5,14 @@ import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
 const STATUS_LABELS: Record<string, string> = {
-  COMPLETED: "เรียบร้อย",
+  WAITING: "รอการออก",
+  ISSUED: "ออกใบเสร็จแล้ว",
   CANCELLED: "ยกเลิก",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  COMPLETED: "bg-green-100 text-green-700",
+  WAITING: "bg-orange-100 text-orange-700",
+  ISSUED: "bg-green-100 text-green-700",
   CANCELLED: "bg-gray-100 text-gray-600",
 };
 
@@ -28,7 +30,7 @@ interface Receipt {
 
 interface Props {
   receipts: Receipt[];
-  counts: { total: number; completed: number; cancelled: number };
+  counts: { total: number; waiting: number; issued: number; cancelled: number };
 }
 
 export default function ReceiptsClient({ receipts, counts }: Props) {
@@ -51,10 +53,11 @@ export default function ReceiptsClient({ receipts, counts }: Props) {
   return (
     <>
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "ทั้งหมด", value: counts.total, color: "text-gray-700" },
-          { label: "เรียบร้อย", value: counts.completed, color: "text-green-600" },
+          { label: "รอการออก", value: counts.waiting, color: "text-orange-600" },
+          { label: "ออกใบเสร็จแล้ว", value: counts.issued, color: "text-green-600" },
           { label: "ยกเลิก", value: counts.cancelled, color: "text-gray-500" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
@@ -79,7 +82,8 @@ export default function ReceiptsClient({ receipts, counts }: Props) {
           className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
         >
           <option value="ALL">ทุกสถานะ</option>
-          <option value="COMPLETED">เรียบร้อย</option>
+          <option value="WAITING">รอการออก</option>
+          <option value="ISSUED">ออกใบเสร็จแล้ว</option>
           <option value="CANCELLED">ยกเลิก</option>
         </select>
       </div>

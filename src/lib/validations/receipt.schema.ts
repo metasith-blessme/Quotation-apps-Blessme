@@ -25,7 +25,7 @@ export const receiptSchema = z.object({
 });
 
 export const receiptStatusUpdateSchema = z.object({
-  status: z.enum(["COMPLETED", "CANCELLED"], {
+  status: z.enum(["WAITING", "ISSUED", "CANCELLED"], {
     message: "สถานะไม่ถูกต้อง",
   }),
 });
