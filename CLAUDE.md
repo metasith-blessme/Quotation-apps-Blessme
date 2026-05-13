@@ -35,7 +35,7 @@ Quotation (DRAFT → SENT → ACCEPTED)
     → Receipt (WAITING → ISSUED → CANCELLED)           POST /api/invoices/[id]/convert-to-receipt
                                                       POST /api/billings/[id]/convert-to-receipt
 ```
-Each conversion copies all line items and customer data. If already converted, returns the existing record.
+Each conversion copies all line items (sorted by `sortOrder`) and customer data, recomputes financial totals server-side. If already converted, returns the existing record (idempotent).
 
 ### Database
 - **Remote**: Turso (libsql) via `DATABASE_URL` + `TURSO_AUTH_TOKEN`
@@ -96,15 +96,15 @@ NextAuth v5 (`src/lib/auth.ts`), credentials provider, JWT sessions. Roles: `"AD
 
 ### Frontend pages
 - `src/app/(app)/` — authenticated routes (wrapped by layout with Sidebar + Topbar)
-- Dashboard uses `groupBy` aggregates for status counts (not client-side filtering)
+- Dashboard and all list pages use `groupBy` aggregates for status counts (not client-side filtering)
 - Each document type: list page (server component) → `*Client.tsx` (filtering/sorting) → `[id]/page.tsx` (detail) → `[id]/Actions.tsx` (status buttons)
 - Quotation form: `src/components/quotation/QuotationForm.tsx` with `ClientPicker.tsx` and inline product picker
 - Bilingual labels throughout: Thai primary, English secondary
 
 ### Security
 - HTTP headers in `next.config.ts`: HSTS, X-Frame-Options DENY, X-Content-Type-Options nosniff, X-XSS-Protection
-- Ownership guards on all document CRUD routes
-- Server-side financial data verification on all writes
+- Ownership guards on all document CRUD and conversion routes (including duplicate)
+- Server-side financial data recomputation on all writes and conversions (including duplicate)
 - Seed password via `SEED_ADMIN_PASSWORD` env var (defaults to `"admin1234"` for local dev)
 
 ## Environment variables

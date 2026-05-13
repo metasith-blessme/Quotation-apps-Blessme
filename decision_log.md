@@ -1,5 +1,23 @@
 # Decision Log
 
+## May 13, 2026
+
+### 19. groupBy Aggregates for All List Pages
+- **Decision:** Replace client-side `.filter().length` counting (Quotations, Invoices, Billings) and 4 sequential `count()` calls (Receipts) with Prisma `groupBy` on all list pages.
+- **Rationale:** Dashboard already used `groupBy` (decision #14) but list pages still used the old inefficient patterns. Quotations/Invoices/Billings fetched ALL records into memory just to count statuses. Receipts made 4 separate DB round-trips. Now each list page makes exactly 2 queries: one `groupBy` for counts, one `findMany` for display data, run in `Promise.all`.
+
+### 20. Deterministic Item Ordering in Conversion Routes
+- **Decision:** Add `orderBy: { sortOrder: "asc" }` to the `include: { items }` clause in all 4 conversion routes.
+- **Rationale:** Without explicit ordering, items arrived in arbitrary database insertion order during conversion. The duplicate route already had this ordering but the 4 conversion routes did not, creating inconsistency. Items must maintain their original display order through the entire document lifecycle.
+
+### 21. Server-Side Financial Recomputation in Duplicate Route
+- **Decision:** Add `lineTotal = quantity * unitPrice` recomputation to the quotation duplicate route, matching the pattern used in all 4 conversion routes.
+- **Rationale:** The duplicate route was the only write path that copied `subtotal`, `vatAmount`, `grandTotal` directly from the source without recomputation. While low risk (source data was already server-computed), this was inconsistent with the security pattern established in decision #8 and could mask data corruption if the source had been tampered with at the database level.
+
+### 22. Custom Validation Agents (pdf-validator, lifecycle-validator)
+- **Decision:** Create two custom Claude Code agents for automated codebase validation: `pdf-validator` (10 checks for PDF rendering integrity) and `lifecycle-validator` (12 checks for document lifecycle correctness).
+- **Rationale:** PDF rendering bugs (decisions #16, #17) and lifecycle issues (ownership guards, financial recomputation) were hard to catch manually and only manifested on Vercel. Automated agents catch regressions before deploy. Both agents are read-only (diagnose, never fix) and use Haiku model for cost efficiency.
+
 ## May 12-13, 2026
 
 ### 16. createElement() Instead of JSX for All PDF Components

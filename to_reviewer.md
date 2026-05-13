@@ -1,7 +1,7 @@
 # Reviewer Instructions
 
 ## Summary of Current State
-The BlessMe Topping quotation app is production-deployed on Vercel with full document lifecycle support (Quotation → Invoice → Billing Note → Receipt). Recent work (May 12-13) fixed critical PDF rendering bugs and added the Receipt status toggle.
+The BlessMe Topping quotation app is production-deployed on Vercel with full document lifecycle support (Quotation → Invoice → Billing Note → Receipt). Recent work (May 12-13) fixed critical PDF rendering bugs and added the Receipt status toggle. May 13 session added performance optimizations (groupBy on all list pages), data integrity fixes (sortOrder in conversions, financial recomputation in duplicate route), and custom validation agents.
 
 ## Areas to Verify
 
@@ -35,10 +35,12 @@ The BlessMe Topping quotation app is production-deployed on Vercel with full doc
 - **Invoice → Billing / Receipt:** Convert and verify data inheritance
 - **Billing → Receipt:** Convert and verify
 - **Idempotency:** Converting the same document twice should return the existing record, not create a duplicate
+- **Item ordering:** Verify line items maintain their sortOrder through conversion (items should appear in the same order in the converted document)
+- **Duplicate financial integrity:** Duplicate a quotation and verify subtotal/vatAmount/grandTotal are recomputed server-side (not just copied)
 
-### 5. Dashboard Performance
-- **Status counts:** Verify dashboard shows correct counts for each document status (including Receipts)
-- **Query efficiency:** Dashboard should use `groupBy` aggregates (check server logs — should NOT fetch all records)
+### 5. List Page & Dashboard Performance
+- **Status counts:** Verify dashboard AND all 4 list pages (Quotations, Invoices, Billings, Receipts) show correct counts for each status
+- **Query efficiency:** Dashboard and all list pages should use `groupBy` aggregates (check server logs — should NOT fetch all records or make multiple count() calls)
 
 ### 6. Role-Based Access
 - **ADMIN:** Can see all documents across all users
@@ -81,3 +83,8 @@ Located in `src/lib/validations/`:
 
 ### Debug Endpoints
 - Debug PDF endpoints (`/api/debug-pdf`, `/api/debug-pdf/test`) have been removed (cleaned up 2026-05-13).
+
+### Custom Validation Agents
+Two custom agents are available for automated codebase validation:
+- **pdf-validator** (`~/.claude/agents/pdf-validator.md`) — 10 checks for PDF rendering integrity (createElement, hyphenation, fonts, Thai text). Invoke: "use the pdf-validator agent"
+- **lifecycle-validator** (`~/.claude/agents/lifecycle-validator.md`) — 12 checks for document lifecycle correctness (conversions, ownership, idempotency, financial integrity). Invoke: "use the lifecycle-validator agent"

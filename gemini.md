@@ -35,6 +35,13 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
     - Added `customerEmail` field to all 4 PDF document types.
 - **Dashboard:** Integrated Receipt statistics and recent activity feed.
 
+### May 13, 2026 — Performance & Data Integrity Fixes, Custom Agents
+- **Performance:** Replaced client-side status counting with Prisma `groupBy` on all 4 list pages (Quotations, Invoices, Billings, Receipts). Each page now makes exactly 2 DB queries (`groupBy` + `findMany`) instead of fetching all records or making 4 separate `count()` calls.
+- **Data Integrity:** All 4 conversion routes now query items with `orderBy: { sortOrder: "asc" }` for deterministic item ordering during document conversion.
+- **Security:** Duplicate route now recomputes `lineTotal`, `subtotal`, `vatAmount`, `grandTotal` server-side instead of copying directly from original, consistent with all conversion routes.
+- **Cleanup:** Removed empty debug-pdf directories and stale to_reviewer.md references.
+- **Custom Agents:** Created `pdf-validator` and `lifecycle-validator` agents for automated validation of PDF rendering and document lifecycle integrity.
+
 ### April 20, 2026 — PDF Thai Text Clipping Fix
 - Fixed customer name truncation in PDFs (closing parenthesis clipped on long Thai names)
 - Root cause: `@react-pdf/renderer` clips last character of Thai text without trailing space buffer
