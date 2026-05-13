@@ -9,10 +9,20 @@ interface Product {
   nameEn?: string | null;
   unit: string;
   pricePerUnit: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
   isActive: boolean;
 }
 
-const emptyForm = { nameTh: "", nameEn: "", unit: "", pricePerUnit: 0, isActive: true };
+const emptyForm = {
+  nameTh: "",
+  nameEn: "",
+  unit: "",
+  pricePerUnit: 0,
+  stockQuantity: 0,
+  lowStockThreshold: 0,
+  isActive: true,
+};
 
 export default function ProductsClient({ initialProducts }: { initialProducts: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -23,7 +33,15 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
 
   function startEdit(p: Product) {
     setEditId(p.id);
-    setForm({ nameTh: p.nameTh, nameEn: p.nameEn ?? "", unit: p.unit, pricePerUnit: p.pricePerUnit, isActive: p.isActive });
+    setForm({
+      nameTh: p.nameTh,
+      nameEn: p.nameEn ?? "",
+      unit: p.unit,
+      pricePerUnit: p.pricePerUnit,
+      stockQuantity: p.stockQuantity,
+      lowStockThreshold: p.lowStockThreshold,
+      isActive: p.isActive,
+    });
   }
 
   function cancelEdit() {
@@ -41,7 +59,12 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, pricePerUnit: Number(form.pricePerUnit) }),
+      body: JSON.stringify({
+        ...form,
+        pricePerUnit: Number(form.pricePerUnit),
+        stockQuantity: Number(form.stockQuantity),
+        lowStockThreshold: Number(form.lowStockThreshold),
+      }),
     });
 
     setLoading(false);
@@ -113,6 +136,28 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">จำนวนสต็อก</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.stockQuantity}
+              onChange={(e) => setForm({ ...form, stockQuantity: parseFloat(e.target.value) || 0 })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">เตือนเมื่อเหลือ</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.lowStockThreshold}
+              onChange={(e) => setForm({ ...form, lowStockThreshold: parseFloat(e.target.value) || 0 })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
           <div className="col-span-2 flex items-end gap-2">
             <button
               type="button"
@@ -140,6 +185,8 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
               <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อสินค้า</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">หน่วย</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">ราคา/หน่วย</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-600">สต็อก</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-600">จุดเตือน</th>
               <th className="text-center px-4 py-3 font-medium text-gray-600">สถานะ</th>
               <th className="text-center px-4 py-3 font-medium text-gray-600">การดำเนินการ</th>
             </tr>
@@ -153,6 +200,10 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
                 </td>
                 <td className="px-4 py-3 text-gray-600">{p.unit}</td>
                 <td className="px-4 py-3 text-right font-medium">฿{formatCurrency(p.pricePerUnit)}</td>
+                <td className={`px-4 py-3 text-right font-medium ${p.stockQuantity <= p.lowStockThreshold ? "text-amber-600" : "text-gray-800"}`}>
+                  {formatCurrency(p.stockQuantity)}
+                </td>
+                <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(p.lowStockThreshold)}</td>
                 <td className="px-4 py-3 text-center">
                   <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${p.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {p.isActive ? "ใช้งาน" : "ปิดใช้งาน"}

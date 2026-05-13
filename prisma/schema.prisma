@@ -28,6 +28,8 @@ model Product {
   nameEn         String?
   unit           String
   pricePerUnit   Float
+  stockQuantity  Float           @default(0)
+  lowStockThreshold Float        @default(0)
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

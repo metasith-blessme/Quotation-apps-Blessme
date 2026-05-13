@@ -42,11 +42,17 @@ async function main() {
 
   // Create sample products
   const products = [
-    { nameTh: "บุก (Konjac)", nameEn: "Konjac", unit: "กก.", pricePerUnit: 120 },
-    { nameTh: "ไข่มุกดำ", nameEn: "Black Tapioca Pearl", unit: "กก.", pricePerUnit: 95 },
-    { nameTh: "วุ้นมะพร้าว", nameEn: "Nata de Coco", unit: "ลัง", pricePerUnit: 350 },
-    { nameTh: "เยลลี่กาแฟ", nameEn: "Coffee Jelly", unit: "กก.", pricePerUnit: 110 },
-    { nameTh: "ถั่วแดงหวาน", nameEn: "Sweet Red Bean", unit: "กก.", pricePerUnit: 85 },
+    { nameTh: "บุก (Konjac)", nameEn: "Konjac", unit: "กก.", pricePerUnit: 120, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "ไข่มุกดำ", nameEn: "Black Tapioca Pearl", unit: "กก.", pricePerUnit: 95, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "วุ้นมะพร้าว", nameEn: "Nata de Coco", unit: "ลัง", pricePerUnit: 350, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "เยลลี่กาแฟ", nameEn: "Coffee Jelly", unit: "กก.", pricePerUnit: 110, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "ถั่วแดงหวาน", nameEn: "Sweet Red Bean", unit: "กก.", pricePerUnit: 85, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "Popping Boba barley", nameEn: "Popping Boba barley", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "Popping Boba redbean", nameEn: "Popping Boba redbean", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "Popping Boba oat", nameEn: "Popping Boba oat", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "Popping Boba Cheese", nameEn: "Popping Boba Cheese", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "Popping boba osmanthus", nameEn: "Popping boba osmanthus", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
+    { nameTh: "Popping Boba Water chestnut", nameEn: "Popping Boba Water chestnut", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
   ];
 
   for (const p of products) {
