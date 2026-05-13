@@ -6,36 +6,26 @@ export default async function ReceiptsPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const receipts = await prisma.receipt.findMany({
-    where: !isAdmin ? { createdById: session?.user?.id } : {},
-    include: {
-      createdBy: { select: { name: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const whereOwn = !isAdmin ? { createdById: session?.user?.id } : {};
+
+  const [statusCounts, receipts] = await Promise.all([
+    prisma.receipt.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.receipt.findMany({
+      where: whereOwn,
+      include: { createdBy: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   const counts = {
-    total: await prisma.receipt.count({
-      where: !isAdmin ? { createdById: session?.user?.id } : {},
-    }),
-    waiting: await prisma.receipt.count({
-      where: {
-        status: "WAITING",
-        ...(!isAdmin ? { createdById: session?.user?.id } : {}),
-      },
-    }),
-    issued: await prisma.receipt.count({
-      where: {
-        status: "ISSUED",
-        ...(!isAdmin ? { createdById: session?.user?.id } : {}),
-      },
-    }),
-    cancelled: await prisma.receipt.count({
-      where: {
-        status: "CANCELLED",
-        ...(!isAdmin ? { createdById: session?.user?.id } : {}),
-      },
-    }),
+    total: statusCounts.reduce((sum, item) => sum + item._count, 0),
+    waiting: statusCounts.find((item) => item.status === "WAITING")?._count ?? 0,
+    issued: statusCounts.find((item) => item.status === "ISSUED")?._count ?? 0,
+    cancelled: statusCounts.find((item) => item.status === "CANCELLED")?._count ?? 0,
   };
 
   return (

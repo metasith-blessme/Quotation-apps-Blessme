@@ -6,17 +6,26 @@ export default async function InvoicesPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const invoices = await prisma.invoice.findMany({
-    where: isAdmin ? {} : { createdById: session!.user.id },
-    orderBy: { createdAt: "desc" },
-    include: { createdBy: { select: { name: true } } },
-  });
+  const whereOwn = isAdmin ? {} : { createdById: session!.user.id };
+
+  const [statusCounts, invoices] = await Promise.all([
+    prisma.invoice.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.invoice.findMany({
+      where: whereOwn,
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { name: true } } },
+    }),
+  ]);
 
   const counts = {
-    total: invoices.length,
-    unpaid: invoices.filter((i) => i.status === "UNPAID").length,
-    paid: invoices.filter((i) => i.status === "PAID").length,
-    cancelled: invoices.filter((i) => i.status === "CANCELLED").length,
+    total: statusCounts.reduce((sum, item) => sum + item._count, 0),
+    unpaid: statusCounts.find((item) => item.status === "UNPAID")?._count ?? 0,
+    paid: statusCounts.find((item) => item.status === "PAID")?._count ?? 0,
+    cancelled: statusCounts.find((item) => item.status === "CANCELLED")?._count ?? 0,
   };
 
   return (

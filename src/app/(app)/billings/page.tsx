@@ -6,17 +6,26 @@ export default async function BillingsPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const billings = await prisma.billing.findMany({
-    where: isAdmin ? {} : { createdById: session!.user.id },
-    orderBy: { createdAt: "desc" },
-    include: { createdBy: { select: { name: true } } },
-  });
+  const whereOwn = isAdmin ? {} : { createdById: session!.user.id };
+
+  const [statusCounts, billings] = await Promise.all([
+    prisma.billing.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.billing.findMany({
+      where: whereOwn,
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { name: true } } },
+    }),
+  ]);
 
   const counts = {
-    total: billings.length,
-    pending: billings.filter((b) => b.status === "PENDING").length,
-    collected: billings.filter((b) => b.status === "COLLECTED").length,
-    cancelled: billings.filter((b) => b.status === "CANCELLED").length,
+    total: statusCounts.reduce((sum, item) => sum + item._count, 0),
+    pending: statusCounts.find((item) => item.status === "PENDING")?._count ?? 0,
+    collected: statusCounts.find((item) => item.status === "COLLECTED")?._count ?? 0,
+    cancelled: statusCounts.find((item) => item.status === "CANCELLED")?._count ?? 0,
   };
 
   return (

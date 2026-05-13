@@ -7,17 +7,26 @@ export default async function QuotationsPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const quotations = await prisma.quotation.findMany({
-    where: isAdmin ? {} : { createdById: session!.user.id },
-    orderBy: { createdAt: "desc" },
-    include: { createdBy: { select: { name: true } } },
-  });
+  const whereOwn = isAdmin ? {} : { createdById: session!.user.id };
+
+  const [statusCounts, quotations] = await Promise.all([
+    prisma.quotation.groupBy({
+      by: ["status"],
+      where: whereOwn,
+      _count: true,
+    }),
+    prisma.quotation.findMany({
+      where: whereOwn,
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { name: true } } },
+    }),
+  ]);
 
   const counts = {
-    total: quotations.length,
-    draft: quotations.filter((q) => q.status === "DRAFT").length,
-    sent: quotations.filter((q) => q.status === "SENT").length,
-    accepted: quotations.filter((q) => q.status === "ACCEPTED").length,
+    total: statusCounts.reduce((sum, item) => sum + item._count, 0),
+    draft: statusCounts.find((item) => item.status === "DRAFT")?._count ?? 0,
+    sent: statusCounts.find((item) => item.status === "SENT")?._count ?? 0,
+    accepted: statusCounts.find((item) => item.status === "ACCEPTED")?._count ?? 0,
   };
 
   return (

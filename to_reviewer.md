@@ -79,7 +79,5 @@ Located in `src/lib/validations/`:
 - User, Product, Client, Company (singleton settings)
 - All document models have indexes on `status`, `createdById`, `createdAt`
 
-### Debug Endpoints (to clean up)
-- `/api/debug-pdf` — Returns receipt data and environment info as JSON
-- `/api/debug-pdf/test` — Generates a test receipt PDF with hardcoded data
-- These should be removed before next release.
+### Debug Endpoints
+- Debug PDF endpoints (`/api/debug-pdf`, `/api/debug-pdf/test`) have been removed (cleaned up 2026-05-13).
