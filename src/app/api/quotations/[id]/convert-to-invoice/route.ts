@@ -22,6 +22,11 @@ export async function POST(
       return new NextResponse("Quotation not found", { status: 404 });
     }
 
+    const isAdmin = session.user.role === "ADMIN";
+    if (!isAdmin && quotation.createdById !== session.user.id) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     // Optional: Check if already converted
     const existingInvoice = await prisma.invoice.findFirst({
       where: { quotationId: id },

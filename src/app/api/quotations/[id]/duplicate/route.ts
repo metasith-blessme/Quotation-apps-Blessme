@@ -18,6 +18,10 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   if (!original) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const isAdmin = session.user.role === "ADMIN";
+  if (!isAdmin && original.createdById !== session.user.id)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const qtNumber = await generateQTNumber();
   const today = new Date();
 

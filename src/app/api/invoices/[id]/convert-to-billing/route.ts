@@ -22,6 +22,11 @@ export async function POST(
       return new NextResponse("Invoice not found", { status: 404 });
     }
 
+    const isAdmin = session.user.role === "ADMIN";
+    if (!isAdmin && invoice.createdById !== session.user.id) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     // Check if already converted
     const existingBilling = await prisma.billing.findFirst({
       where: { invoiceId: id },

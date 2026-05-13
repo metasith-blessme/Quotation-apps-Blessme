@@ -18,29 +18,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
-    // Debug: log receipt data for PDF diagnosis
-    const debugReceipt = await prisma.receipt.findUnique({
-      where: { id },
-      include: { items: true },
-    });
-    console.log("[PDF DEBUG] Receipt data:", JSON.stringify({
-      rcNumber: debugReceipt?.rcNumber,
-      subtotal: debugReceipt?.subtotal,
-      grandTotal: debugReceipt?.grandTotal,
-      vatAmount: debugReceipt?.vatAmount,
-      itemCount: debugReceipt?.items?.length,
-      firstItem: debugReceipt?.items?.[0] ? {
-        name: debugReceipt.items[0].productNameTh,
-        qty: debugReceipt.items[0].quantity,
-        price: debugReceipt.items[0].unitPrice,
-        total: debugReceipt.items[0].lineTotal,
-        qtyType: typeof debugReceipt.items[0].quantity,
-        priceType: typeof debugReceipt.items[0].unitPrice,
-      } : null,
-    }));
-
     const buffer = await generateReceiptPDF(id);
-    console.log("[PDF DEBUG] Buffer size:", buffer.length);
     return new Response(buffer as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",

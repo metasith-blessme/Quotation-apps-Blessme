@@ -22,6 +22,11 @@ export async function POST(
       return new NextResponse("Billing Note not found", { status: 404 });
     }
 
+    const isAdmin = session.user.role === "ADMIN";
+    if (!isAdmin && billing.createdById !== session.user.id) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     // Check if already converted
     const existingReceipt = await prisma.receipt.findFirst({
       where: { billingId: id },

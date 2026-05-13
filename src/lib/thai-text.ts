@@ -4,12 +4,6 @@
  */
 
 /**
- * Thai combining marks (diacritical marks) that must stay attached to their base character.
- * Includes tone marks, vowel marks, and other modifiers.
- */
-const THAI_COMBINING_MARKS = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g;
-
-/**
  * Check if a character is Thai combining mark
  */
 function isThaiCombiningMark(char: string): boolean {
