@@ -1,5 +1,22 @@
 # Decision Log
 
+## May 12-13, 2026
+
+### 16. createElement() Instead of JSX for All PDF Components
+- **Decision:** Convert all PDF components from JSX syntax to explicit `createElement()` calls (aliased as `h`).
+- **Rationale:** Turbopack (Next.js 16's bundler) compiles JSX `<Text>label{var} </Text>` into multi-child Text nodes via React 19's `jsx()`/`jsxs()` runtime. `@react-pdf/renderer` silently drops all but the first child of multi-child Text nodes when running on Vercel serverless. Using `createElement()` with template literal strings (`h(Text, null, \`label${var} \`)`) guarantees single-child Text nodes that render correctly.
+- **Alternatives considered:** (1) Template literals in JSX — partially worked (prices rendered) but many values still failed. (2) Turbopack config changes — no available option to control JSX child merging behavior.
+- **Impact:** All 5 PDF files rewritten (~243 insertions, ~290 deletions). This is a permanent architectural constraint: any future PDF component must use `createElement()`, not JSX.
+
+### 17. Hyphenation Callback Must Return `[word]` for Non-Thai Text
+- **Decision:** Changed `registerHyphenationCallback` to return `[word]` instead of `[]` for words without Thai characters.
+- **Rationale:** `@react-pdf/renderer` uses the hyphenation callback to split words into syllables for line-breaking. Returning `[]` (empty array) tells the renderer the word has zero syllables, causing it to render nothing. This was the root cause of ALL Latin/ASCII content being invisible in PDFs: document numbers (RC-2026-001), dates (12/05/2569), phone numbers, emails, tax IDs, quantities, and all English bilingual labels.
+- **Discovery:** The ฿ (Thai baht sign, U+0E3F) is in the Thai Unicode range, so `฿80.00` took the Thai code path and rendered. Every other non-Thai string (pure numbers, English, mixed) returned `[]` and was invisible. This one-character bug (`[]` → `[word]`) was the primary PDF rendering failure.
+
+### 18. ReceiptActions Component with Status Toggle
+- **Decision:** Created `ReceiptActions.tsx` client component for receipt status transitions (WAITING → ISSUED/CANCELLED, with undo paths back to WAITING).
+- **Rationale:** The receipt detail page already imported `<ReceiptActions>` but the file didn't exist. The accounting team needed to toggle receipt status. Pattern matches existing `BillingActions.tsx` but uses PATCH (not PUT) per the receipt API route.
+
 ## April 20, 2026
 
 ### 6. PDF Thai Text Clipping Fix — paddingRight Approach

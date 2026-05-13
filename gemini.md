@@ -22,13 +22,17 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
 
 ## Changelog
 
-### May 12, 2026 — Receipt Module & Commercial Grade PDF Fixes
-- **Receipt Functionality:** Added Receipt model and module with "Waiting/Issued" status toggle.
+### May 12-13, 2026 — Receipt Module, PDF Critical Fix & createElement Migration
+- **Receipt Functionality:** Added Receipt model and module with "Waiting/Issued/Cancelled" status toggle via `ReceiptActions.tsx`. PATCH API at `/api/receipts/[id]`.
+- **CRITICAL PDF Fix — createElement Migration:**
+    - **Root cause 1:** Turbopack's JSX transform produces multi-child Text nodes that `@react-pdf/renderer` silently drops on Vercel serverless. Converted ALL PDF components (`PDFLayout.tsx`, `QuotationPDFDocument.tsx`, `InvoicePDFDocument.tsx`, `BillingPDFDocument.tsx`, `ReceiptPDFDocument.tsx`) from JSX to `createElement()`.
+    - **Root cause 2:** Hyphenation callback returned `[]` (empty array) for non-Thai words (numbers, English text, emails, dates). `@react-pdf/renderer` interprets empty array as "zero syllables" and renders nothing. Fixed to return `[word]`.
+    - These two bugs combined made all Latin/ASCII content (document numbers, dates, phone numbers, emails, tax IDs, quantities, English bilingual labels) invisible in production PDFs.
 - **Commercial Grade PDF:**
-    - Forced Arabic numerals (latn) in all PDF values to fix server-side rendering issues.
-    - Implemented structural integrity fixes (View wrapping) to prevent numerical data clipping by Thai text.
+    - Forced Arabic numerals (latn) in all PDF values.
     - Added professional Thai Baht Text conversion (e.g. "หนึ่งพันบาทถ้วน") for totals.
     - Added smart document titling based on VAT (Receipt/Tax Invoice vs Receipt).
+    - Added `customerEmail` field to all 4 PDF document types.
 - **Dashboard:** Integrated Receipt statistics and recent activity feed.
 
 ### April 20, 2026 — PDF Thai Text Clipping Fix

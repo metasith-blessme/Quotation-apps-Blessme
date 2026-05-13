@@ -60,32 +60,35 @@ All routes in `src/app/api/` follow this structure:
 ### PDF generation
 `src/lib/pdf.ts` exports `generateQuotationPDF`, `generateInvoicePDF`, `generateBillingPDF`, `generateReceiptPDF`. Each fetches the record + cached company settings (1-min TTL via `src/lib/company-cache.ts`), then renders to buffer.
 
-**Commercial Grade PDF Fixes (May 12):**
+**Commercial Grade PDF Fixes (May 12-13):**
+- **createElement() over JSX:** All PDF components use `createElement()` instead of JSX to bypass Turbopack's JSX transform, which produces multi-child Text nodes that `@react-pdf/renderer` silently drops on Vercel serverless.
+- **Hyphenation callback fix:** The callback must return `[word]` for non-Thai text (not `[]`). Returning an empty array makes `@react-pdf/renderer` treat the word as having zero syllables, rendering it invisible.
 - **Arabic Numerals:** Force `en-US` formatting for numbers and `th-TH-u-nu-latn` for dates to ensure numerals render reliably in server environments.
-- **Structural Integrity:** Wrap numerical values in separate `View` containers to prevent clipping by Thai text.
 - **Thai Baht Text:** Added `bahtText` utility in `src/lib/thai-text.ts` for professional currency text.
 
 **Shared components** in `src/components/pdf/shared/`:
-- `PDFLayout.tsx` — PdfHeader, CustomerSection, ItemsTable, TotalsSection, NotesSection, SignatureSection
+- `PDFLayout.tsx` — PdfHeader, CustomerSection, ItemsTable, TotalsSection, NotesSection, SignatureSection (all use `createElement()`)
 - `pdfStyles.ts` — `createPDFStyles(accentColor)` factory (green for Quotation, blue for Invoice/Billing, indigo for Receipt)
-- `pdfFonts.ts` — `registerPDFFonts()` with Thai hyphenation callback
+- `pdfFonts.ts` — `registerPDFFonts()` with Thai hyphenation callback (Google Fonts CDN URLs)
 
-**Per-document components** (~85-94 lines each):
+**Per-document components** (all use `createElement()`):
 - `QuotationPDFDocument.tsx` — green accent (#16a34a)
 - `InvoicePDFDocument.tsx` — blue accent (#3b82f6)
 - `BillingPDFDocument.tsx` — blue accent (#3b82f6)
 - `ReceiptPDFDocument.tsx` — indigo accent (#6366f1)
 
 **Thai text in PDFs — known pitfalls:**
-- Font: Sarabun (`public/fonts/Sarabun-*.ttf`), registered in `pdfFonts.ts`
+- Font: Sarabun via Google Fonts CDN, registered in `pdfFonts.ts`
+- **CRITICAL:** All PDF components MUST use `createElement()` (aliased as `h`), NOT JSX. Turbopack's JSX transform creates multi-child Text nodes that `@react-pdf/renderer` silently drops on Vercel.
+- **CRITICAL:** Hyphenation callback must return `[word]` for non-Thai words, never `[]`. Empty array = invisible text.
 - Hyphenation callback must never break Thai combining marks (U+0E31, U+0E34–U+0E3A, U+0E47–U+0E4E)
-- `@react-pdf/renderer` clips the last character of Thai text — always add a trailing space after `{text} ` in Text elements
+- Always add a trailing space in template literals: `` `${text} ` `` to prevent last-character clipping
 - Use `paddingRight` on text styles for additional clipping protection
 - Thai text utilities: `src/lib/thai-text.ts` (word boundary detection, combining mark validation, `bahtText`)
 
 **Adding a new PDF type:**
 1. Import shared components from `src/components/pdf/shared/`
-2. Create document component (~90 lines)
+2. Create document component using `createElement()` (NOT JSX) — see existing components for pattern
 3. Add generator function to `src/lib/pdf.ts`
 
 ### Auth
