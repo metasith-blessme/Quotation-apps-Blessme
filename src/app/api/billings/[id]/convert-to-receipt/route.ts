@@ -15,7 +15,7 @@ export async function POST(
   try {
     const billing = await prisma.billing.findUnique({
       where: { id },
-      include: { items: true },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
     });
 
     if (!billing) {

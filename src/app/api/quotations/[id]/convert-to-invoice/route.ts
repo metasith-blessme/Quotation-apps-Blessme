@@ -15,7 +15,7 @@ export async function POST(
   try {
     const quotation = await prisma.quotation.findUnique({
       where: { id },
-      include: { items: true },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
     });
 
     if (!quotation) {

@@ -15,7 +15,7 @@ export async function POST(
   try {
     const invoice = await prisma.invoice.findUnique({
       where: { id },
-      include: { items: true },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
     });
 
     if (!invoice) {

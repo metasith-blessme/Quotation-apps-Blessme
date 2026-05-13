@@ -25,6 +25,16 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const qtNumber = await generateQTNumber();
   const today = new Date();
 
+  // SECURITY: Recompute lineTotal and totals server-side
+  const itemsWithComputedTotals = original.items.map((item) => ({
+    ...item,
+    lineTotal: item.quantity * item.unitPrice,
+  }));
+
+  const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
+  const vatAmount = (subtotal * original.vatRate) / 100;
+  const grandTotal = subtotal + vatAmount;
+
   const duplicate = await prisma.quotation.create({
     data: {
       qtNumber,
@@ -39,13 +49,13 @@ export async function POST(_req: NextRequest, { params }: Params) {
       issueDate: today,
       validUntil: addDays(today, 30),
       vatRate: original.vatRate,
-      subtotal: original.subtotal,
-      vatAmount: original.vatAmount,
-      grandTotal: original.grandTotal,
+      subtotal,
+      vatAmount,
+      grandTotal,
       notes: original.notes,
       termsSnapshot: original.termsSnapshot,
       items: {
-        create: original.items.map((item) => ({
+        create: itemsWithComputedTotals.map((item) => ({
           productId: item.productId,
           productNameTh: item.productNameTh,
           productNameEn: item.productNameEn,
