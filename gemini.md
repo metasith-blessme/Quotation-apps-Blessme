@@ -35,16 +35,16 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
     - Added `customerEmail` field to all 4 PDF document types.
 - **Dashboard:** Integrated Receipt statistics and recent activity feed.
 
-### May 19, 2026 — Tiered Pricing & Stock Notifications
-- **Tiered Volume Pricing:**
-    - Added `ProductTier` model to support volume-based discounts (e.g., 1-5 pcs @ 115, 6-11 pcs @ 100, etc.).
-    - Updated Products UI to manage pricing tiers directly.
-    - Integrated auto-pricing logic into `QuotationForm`: unit prices now dynamically update based on quantity and product tiers.
+### May 19, 2026 — Smart Pricing Template & Stock Notifications
+- **Smart Pricing Template:**
+    - Added a "✨ ใช้โครงสร้างราคามาตรฐาน" button in Product UI.
+    - Intelligent Logic: Automatically applies the 7-tier structure (115/100/90/80/75/70/65).
+    - **Cheese Markup:** Detects "Cheese" in product name and automatically applies a **+30 THB markup** to the entire structure (e.g., 115 becomes 145).
 - **Stock Notification ("Red Line"):**
     - Added "Critical Stock Alert" section to Dashboard, automatically listing products that fall below their `lowStockThreshold`.
     - Implemented visual "red line" indicators and pulse animations on the Products list page for low stock items.
 - **Data Integrity:** Updated `productSchema` to include tier validation and ensured server-side support in products API.
-- **Seeding:** Updated `prisma/seed.ts` with real-world examples of tiered pricing and stock alerts.
+- **Seeding:** Updated `prisma/seed.ts` with all 6 Popping Boba SKUs (Cheese, Water chestnut, Barley, Oat, Redbean, Osmanthus).
 
 ### April 20, 2026 — PDF Thai Text Clipping Fix
 - Fixed customer name truncation in PDFs (closing parenthesis clipped on long Thai names)

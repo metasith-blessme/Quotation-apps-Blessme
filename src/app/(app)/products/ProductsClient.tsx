@@ -79,6 +79,29 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
     setForm({ ...form, tiers: newTiers });
   }
 
+  function applyStandardTemplate() {
+    // Check if it's a Cheese variant
+    const isCheese =
+      form.nameEn?.toLowerCase().includes("cheese") ||
+      form.nameTh?.includes("ชีส") ||
+      form.nameTh?.toLowerCase().includes("cheese");
+
+    const markup = isCheese ? 30 : 0;
+
+    setForm({
+      ...form,
+      pricePerUnit: 115 + markup,
+      tiers: [
+        { minQty: 6, price: 100 + markup },
+        { minQty: 12, price: 90 + markup },
+        { minQty: 24, price: 80 + markup }, // 1 box
+        { minQty: 120, price: 75 + markup }, // 5 boxes
+        { minQty: 240, price: 70 + markup }, // 10 boxes (16,800 or 24,000 total)
+        { minQty: 2400, price: 65 + markup }, // 100 boxes
+      ],
+    });
+  }
+
   async function save() {
     setLoading(true);
     setError("");
@@ -197,7 +220,16 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
           {/* Pricing Tiers Section */}
           <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">ราคาพิเศษตามจำนวน (Tiers)</h4>
+              <div className="flex items-center gap-3">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">ราคาพิเศษตามจำนวน (Tiers)</h4>
+                <button
+                  type="button"
+                  onClick={applyStandardTemplate}
+                  className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 font-bold flex items-center gap-1 shadow-sm transition-colors"
+                >
+                  ✨ ใช้โครงสร้างราคามาตรฐาน
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={addTier}
