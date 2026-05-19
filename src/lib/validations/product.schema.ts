@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+export const productTierSchema = z.object({
+  id: z.string().optional(),
+  minQty: z.number().min(0, "จำนวนขั้นต่ำต้องไม่ติดลบ"),
+  price: z.number().min(0, "ราคาต้องไม่ติดลบ"),
+});
+
 export const productSchema = z.object({
   nameTh: z.string().min(1, "กรุณาระบุชื่อสินค้า (ภาษาไทย)"),
   nameEn: z.string().optional(),
@@ -8,6 +14,7 @@ export const productSchema = z.object({
   stockQuantity: z.number().min(0, "จำนวนสต็อกต้องไม่ติดลบ").default(0),
   lowStockThreshold: z.number().min(0, "จุดเตือนสต็อกต้องไม่ติดลบ").default(0),
   isActive: z.boolean().default(true),
+  tiers: z.array(productTierSchema).optional(),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;

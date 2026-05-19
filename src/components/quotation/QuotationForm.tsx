@@ -5,12 +5,18 @@ import { useRouter } from "next/navigation";
 import { formatDateInput, addDays, formatCurrency } from "@/lib/utils/format";
 import ClientPicker from "@/components/quotation/ClientPicker";
 
+interface ProductTier {
+  minQty: number;
+  price: number;
+}
+
 interface Product {
   id: string;
   nameTh: string;
   nameEn?: string | null;
   unit: string;
   pricePerUnit: number;
+  tiers?: ProductTier[];
 }
 
 interface LineItem {
@@ -106,13 +112,39 @@ export default function QuotationForm({
       .catch(() => {});
   }, []);
 
+  function getTieredPrice(productId: string | undefined, quantity: number, defaultPrice: number) {
+    if (!productId) return defaultPrice;
+    const product = products.find((p) => p.id === productId);
+    if (!product || !product.tiers || product.tiers.length === 0) return defaultPrice;
+
+    // Find the tier with the highest minQty that is <= quantity
+    const sortedTiers = [...product.tiers].sort((a, b) => b.minQty - a.minQty);
+    const matchedTier = sortedTiers.find((t) => quantity >= t.minQty);
+
+    return matchedTier ? matchedTier.price : product.pricePerUnit;
+  }
+
   function updateItem(index: number, updates: Partial<LineItem>) {
     setItems((prev) => {
       const next = [...prev];
-      next[index] = { ...next[index], ...updates };
-      const qty = updates.quantity ?? next[index].quantity;
-      const price = updates.unitPrice ?? next[index].unitPrice;
-      next[index].lineTotal = qty * price;
+      const currentItem = next[index];
+      const newValues = { ...currentItem, ...updates };
+
+      let finalUnitPrice = newValues.unitPrice;
+
+      // If quantity changed and it's a linked product, re-check tiered pricing
+      if ("quantity" in updates && newValues.productId) {
+        const product = products.find((p) => p.id === newValues.productId);
+        if (product) {
+          finalUnitPrice = getTieredPrice(product.id, newValues.quantity, product.pricePerUnit);
+        }
+      }
+
+      next[index] = {
+        ...newValues,
+        unitPrice: finalUnitPrice,
+        lineTotal: newValues.quantity * finalUnitPrice,
+      };
       return next;
     });
   }
@@ -120,13 +152,16 @@ export default function QuotationForm({
   function selectProduct(index: number, productId: string) {
     const p = products.find((p) => p.id === productId);
     if (!p) return;
+
+    const currentQty = items[index].quantity;
+    const unitPrice = getTieredPrice(p.id, currentQty, p.pricePerUnit);
+
     updateItem(index, {
       productId: p.id,
       productNameTh: p.nameTh,
       productNameEn: p.nameEn ?? "",
       unit: p.unit,
-      unitPrice: p.pricePerUnit,
-      lineTotal: items[index].quantity * p.pricePerUnit,
+      unitPrice: unitPrice,
     });
   }
 

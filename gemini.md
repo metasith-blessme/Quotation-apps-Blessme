@@ -35,12 +35,16 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
     - Added `customerEmail` field to all 4 PDF document types.
 - **Dashboard:** Integrated Receipt statistics and recent activity feed.
 
-### May 13, 2026 — Performance & Data Integrity Fixes, Custom Agents
-- **Performance:** Replaced client-side status counting with Prisma `groupBy` on all 4 list pages (Quotations, Invoices, Billings, Receipts). Each page now makes exactly 2 DB queries (`groupBy` + `findMany`) instead of fetching all records or making 4 separate `count()` calls.
-- **Data Integrity:** All 4 conversion routes now query items with `orderBy: { sortOrder: "asc" }` for deterministic item ordering during document conversion.
-- **Security:** Duplicate route now recomputes `lineTotal`, `subtotal`, `vatAmount`, `grandTotal` server-side instead of copying directly from original, consistent with all conversion routes.
-- **Cleanup:** Removed empty debug-pdf directories and stale to_reviewer.md references.
-- **Custom Agents:** Created `pdf-validator` and `lifecycle-validator` agents for automated validation of PDF rendering and document lifecycle integrity.
+### May 19, 2026 — Tiered Pricing & Stock Notifications
+- **Tiered Volume Pricing:**
+    - Added `ProductTier` model to support volume-based discounts (e.g., 1-5 pcs @ 115, 6-11 pcs @ 100, etc.).
+    - Updated Products UI to manage pricing tiers directly.
+    - Integrated auto-pricing logic into `QuotationForm`: unit prices now dynamically update based on quantity and product tiers.
+- **Stock Notification ("Red Line"):**
+    - Added "Critical Stock Alert" section to Dashboard, automatically listing products that fall below their `lowStockThreshold`.
+    - Implemented visual "red line" indicators and pulse animations on the Products list page for low stock items.
+- **Data Integrity:** Updated `productSchema` to include tier validation and ensured server-side support in products API.
+- **Seeding:** Updated `prisma/seed.ts` with real-world examples of tiered pricing and stock alerts.
 
 ### April 20, 2026 — PDF Thai Text Clipping Fix
 - Fixed customer name truncation in PDFs (closing parenthesis clipped on long Thai names)

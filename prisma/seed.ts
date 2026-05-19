@@ -40,29 +40,53 @@ async function main() {
   });
   console.log("✅ Company created");
 
-  // Create sample products
+  // Create sample products with tiered pricing and low stock scenarios
   const products = [
-    { nameTh: "บุก (Konjac)", nameEn: "Konjac", unit: "กก.", pricePerUnit: 120, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "ไข่มุกดำ", nameEn: "Black Tapioca Pearl", unit: "กก.", pricePerUnit: 95, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "วุ้นมะพร้าว", nameEn: "Nata de Coco", unit: "ลัง", pricePerUnit: 350, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "เยลลี่กาแฟ", nameEn: "Coffee Jelly", unit: "กก.", pricePerUnit: 110, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "ถั่วแดงหวาน", nameEn: "Sweet Red Bean", unit: "กก.", pricePerUnit: 85, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "Popping Boba barley", nameEn: "Popping Boba barley", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "Popping Boba redbean", nameEn: "Popping Boba redbean", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "Popping Boba oat", nameEn: "Popping Boba oat", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "Popping Boba Cheese", nameEn: "Popping Boba Cheese", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "Popping boba osmanthus", nameEn: "Popping boba osmanthus", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
-    { nameTh: "Popping Boba Water chestnut", nameEn: "Popping Boba Water chestnut", unit: "ลัง", pricePerUnit: 0, stockQuantity: 0, lowStockThreshold: 0 },
+    { 
+      id: "product-topping-sauce",
+      nameTh: "ซอสท็อปปิ้ง รสช็อกโกแลต", 
+      nameEn: "Chocolate Topping Sauce", 
+      unit: "pcs", 
+      pricePerUnit: 115, 
+      stockQuantity: 50, 
+      lowStockThreshold: 100,
+      tiers: {
+        create: [
+          { minQty: 6, price: 100 },
+          { minQty: 12, price: 90 },
+          { minQty: 24, price: 80 },
+          { minQty: 120, price: 75 },
+          { minQty: 240, price: 75 },
+          { minQty: 2400, price: 65 },
+        ]
+      }
+    },
+    { 
+      id: "product-cheese",
+      nameTh: "ชีส", 
+      nameEn: "Cheese", 
+      unit: "pcs", 
+      pricePerUnit: 200, 
+      stockQuantity: 5, 
+      lowStockThreshold: 20 
+    },
+    { id: "product-konjac", nameTh: "บุก (Konjac)", nameEn: "Konjac", unit: "กก.", pricePerUnit: 120, stockQuantity: 0, lowStockThreshold: 0 },
+    { id: "product-pearl", nameTh: "ไข่มุกดำ", nameEn: "Black Tapioca Pearl", unit: "กก.", pricePerUnit: 95, stockQuantity: 0, lowStockThreshold: 0 },
+    { id: "product-nata", nameTh: "วุ้นมะพร้าว", nameEn: "Nata de Coco", unit: "ลัง", pricePerUnit: 350, stockQuantity: 0, lowStockThreshold: 0 },
   ];
 
   for (const p of products) {
+    const { tiers, ...productData } = p;
     await prisma.product.upsert({
-      where: { id: `product-${p.nameTh}` },
+      where: { id: p.id },
       update: {},
-      create: { id: `product-${p.nameTh}`, ...p },
+      create: {
+        ...productData,
+        tiers: tiers ? tiers : undefined,
+      },
     });
   }
-  console.log("✅ Sample products created");
+  console.log("✅ Sample products created with tiers and stock thresholds");
 }
 
 main()

@@ -16,7 +16,31 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const product = await prisma.product.update({ where: { id }, data: parsed.data });
+  const { tiers, ...productData } = parsed.data;
+
+  // Use a transaction to update product and tiers
+  const product = await prisma.$transaction(async (tx) => {
+    // 1. Delete all existing tiers
+    await tx.productTier.deleteMany({ where: { productId: id } });
+
+    // 2. Update product and create new tiers
+    return await tx.product.update({
+      where: { id },
+      data: {
+        ...productData,
+        tiers: tiers?.length
+          ? {
+              create: tiers.map((tier) => ({
+                minQty: tier.minQty,
+                price: tier.price,
+              })),
+            }
+          : undefined,
+      },
+      include: { tiers: { orderBy: { minQty: "asc" } } },
+    });
+  });
+
   return NextResponse.json(product);
 }
 

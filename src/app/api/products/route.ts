@@ -10,6 +10,7 @@ export async function GET() {
   const products = await prisma.product.findMany({
     where: { isActive: true },
     orderBy: { nameTh: "asc" },
+    include: { tiers: { orderBy: { minQty: "asc" } } },
   });
 
   return NextResponse.json(products);
@@ -25,6 +26,22 @@ export async function POST(req: NextRequest) {
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const product = await prisma.product.create({ data: parsed.data });
+  const { tiers, ...productData } = parsed.data;
+
+  const product = await prisma.product.create({
+    data: {
+      ...productData,
+      tiers: tiers?.length
+        ? {
+            create: tiers.map((tier) => ({
+              minQty: tier.minQty,
+              price: tier.price,
+            })),
+          }
+        : undefined,
+    },
+    include: { tiers: true },
+  });
+
   return NextResponse.json(product, { status: 201 });
 }

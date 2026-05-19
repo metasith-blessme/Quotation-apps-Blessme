@@ -58,6 +58,7 @@ export default async function DashboardPage() {
     recentInvoices,
     recentBillings,
     recentReceipts,
+    lowStockProducts,
   ] = await Promise.all([
     prisma.quotation.groupBy({
       by: ["status"],
@@ -111,6 +112,14 @@ export default async function DashboardPage() {
       take: 5,
       select: { id: true, rcNumber: true, customerName: true, grandTotal: true, status: true, createdAt: true },
     }),
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+        stockQuantity: { lte: prisma.product.fields.lowStockThreshold },
+      },
+      orderBy: { stockQuantity: "asc" },
+      take: 10,
+    }),
   ]);
 
   const qtStats = {
@@ -134,6 +143,40 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <h2 className="text-xl font-semibold text-gray-900">หน้าหลัก / Dashboard</h2>
+
+      {/* Critical Alerts - Low Stock */}
+      {lowStockProducts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">⚠️</span>
+            <h3 className="text-sm font-bold text-red-800 uppercase tracking-tight">
+              แจ้งเตือนสต็อกสินค้าต่ำกว่าจุดสั่งซื้อ (Red Line Stock)
+            </h3>
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {lowStockProducts.map((p) => (
+              <div key={p.id} className="bg-white border border-red-100 rounded-lg p-3 shadow-sm">
+                <p className="text-xs font-bold text-gray-800 truncate">{p.nameTh}</p>
+                <div className="flex justify-between items-end mt-1">
+                  <div>
+                    <p className="text-[10px] text-gray-500">คงเหลือ</p>
+                    <p className="text-sm font-black text-red-600">
+                      {formatCurrency(p.stockQuantity)} {p.unit}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-400">จุดเตือน</p>
+                    <p className="text-xs text-gray-500 font-medium">{formatCurrency(p.lowStockThreshold)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Link href="/products" className="flex items-center justify-center bg-white/50 border border-dashed border-red-200 rounded-lg p-3 hover:bg-white transition-colors text-xs font-medium text-red-600">
+              จัดการสต็อกทั้งหมด →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-5 gap-4">
