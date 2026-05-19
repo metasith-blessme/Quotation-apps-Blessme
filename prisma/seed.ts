@@ -40,8 +40,79 @@ async function main() {
   });
   console.log("✅ Company created");
 
+  const standardTiers = [
+    { minQty: 6, price: 100 },
+    { minQty: 12, price: 90 },
+    { minQty: 24, price: 80 },
+    { minQty: 120, price: 75 },
+    { minQty: 240, price: 70 },
+    { minQty: 2400, price: 65 },
+  ];
+
+  const cheeseTiers = standardTiers.map(t => ({ ...t, price: t.price + 30 }));
+
   // Create sample products with tiered pricing and low stock scenarios
   const products = [
+    { 
+      id: "product-cheese",
+      nameTh: "Popping Boba Cheese", 
+      nameEn: "Popping Boba Cheese", 
+      unit: "pcs", 
+      pricePerUnit: 145, 
+      stockQuantity: 5, 
+      lowStockThreshold: 20,
+      tiers: { create: cheeseTiers }
+    },
+    { 
+      id: "product-water-chestnut", 
+      nameTh: "Popping Boba Water chestnut", 
+      nameEn: "Popping Boba Water chestnut", 
+      unit: "pcs", 
+      pricePerUnit: 115, 
+      stockQuantity: 0, 
+      lowStockThreshold: 0,
+      tiers: { create: standardTiers }
+    },
+    { 
+      id: "product-barley", 
+      nameTh: "Popping Boba barley", 
+      nameEn: "Popping Boba barley", 
+      unit: "pcs", 
+      pricePerUnit: 115, 
+      stockQuantity: 0, 
+      lowStockThreshold: 0,
+      tiers: { create: standardTiers }
+    },
+    { 
+      id: "product-oat", 
+      nameTh: "Popping Boba oat", 
+      nameEn: "Popping Boba oat", 
+      unit: "pcs", 
+      pricePerUnit: 115, 
+      stockQuantity: 0, 
+      lowStockThreshold: 0,
+      tiers: { create: standardTiers }
+    },
+    { 
+      id: "product-redbean", 
+      nameTh: "Popping Boba Redbean", 
+      nameEn: "Popping Boba Redbean", 
+      unit: "pcs", 
+      pricePerUnit: 115, 
+      stockQuantity: 0, 
+      lowStockThreshold: 0,
+      tiers: { create: standardTiers }
+    },
+    { 
+      id: "product-osmanthus", 
+      nameTh: "Popping boba Osmanthus", 
+      nameEn: "Popping boba Osmanthus", 
+      unit: "pcs", 
+      pricePerUnit: 115, 
+      stockQuantity: 0, 
+      lowStockThreshold: 0,
+      tiers: { create: standardTiers }
+    },
     { 
       id: "product-topping-sauce",
       nameTh: "ซอสท็อปปิ้ง รสช็อกโกแลต", 
@@ -56,40 +127,44 @@ async function main() {
           { minQty: 12, price: 90 },
           { minQty: 24, price: 80 },
           { minQty: 120, price: 75 },
-          { minQty: 240, price: 75 },
+          { minQty: 240, price: 70 },
           { minQty: 2400, price: 65 },
         ]
       }
     },
-    { 
-      id: "product-cheese",
-      nameTh: "Popping Boba Cheese", 
-      nameEn: "Popping Boba Cheese", 
-      unit: "pcs", 
-      pricePerUnit: 145, 
-      stockQuantity: 5, 
-      lowStockThreshold: 20 
-    },
-    { id: "product-water-chestnut", nameTh: "Popping Boba Water chestnut", nameEn: "Popping Boba Water chestnut", unit: "pcs", pricePerUnit: 115, stockQuantity: 0, lowStockThreshold: 0 },
-    { id: "product-barley", nameTh: "Popping Boba barley", nameEn: "Popping Boba barley", unit: "pcs", pricePerUnit: 115, stockQuantity: 0, lowStockThreshold: 0 },
-    { id: "product-oat", nameTh: "Popping Boba oat", nameEn: "Popping Boba oat", unit: "pcs", pricePerUnit: 115, stockQuantity: 0, lowStockThreshold: 0 },
-    { id: "product-redbean", nameTh: "Popping Boba Redbean", nameEn: "Popping Boba Redbean", unit: "pcs", pricePerUnit: 115, stockQuantity: 0, lowStockThreshold: 0 },
-    { id: "product-osmanthus", nameTh: "Popping boba Osmanthus", nameEn: "Popping boba Osmanthus", unit: "pcs", pricePerUnit: 115, stockQuantity: 0, lowStockThreshold: 0 },
     { id: "product-konjac", nameTh: "บุก (Konjac)", nameEn: "Konjac", unit: "กก.", pricePerUnit: 120, stockQuantity: 0, lowStockThreshold: 0 },
     { id: "product-pearl", nameTh: "ไข่มุกดำ", nameEn: "Black Tapioca Pearl", unit: "กก.", pricePerUnit: 95, stockQuantity: 0, lowStockThreshold: 0 },
     { id: "product-nata", nameTh: "วุ้นมะพร้าว", nameEn: "Nata de Coco", unit: "ลัง", pricePerUnit: 350, stockQuantity: 0, lowStockThreshold: 0 },
   ];
 
   for (const p of products) {
-    const { tiers, ...productData } = p;
+    const { tiers, id, ...productData } = p;
+    
+    // First, delete existing tiers to avoid duplicates if we are refreshing
+    await prisma.productTier.deleteMany({ where: { productId: id } });
+
     await prisma.product.upsert({
-      where: { id: p.id },
-      update: {},
+      where: { id },
+      update: {
+        ...productData,
+        // For existing products, we don't automatically recreate tiers in upsert 
+        // because it's complex, but since we deleted them above, 
+        // we'll handle creation in a separate step or via create.
+      },
       create: {
+        id,
         ...productData,
         tiers: tiers ? tiers : undefined,
       },
     });
+
+    // If tiers were provided and it was an update, create them now
+    if (tiers) {
+      await prisma.product.update({
+        where: { id },
+        data: { tiers },
+      });
+    }
   }
   console.log("✅ Sample products created with tiers and stock thresholds");
 }
