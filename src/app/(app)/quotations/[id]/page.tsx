@@ -27,13 +27,19 @@ export default async function QuotationViewPage({ params }: Params) {
   const session = await auth();
   const { id } = await params;
 
-  const quotation = await prisma.quotation.findUnique({
-    where: { id },
-    include: {
-      items: { orderBy: { sortOrder: "asc" } },
-      createdBy: { select: { name: true } },
-    },
-  });
+  const [quotation, invoice] = await Promise.all([
+    prisma.quotation.findUnique({
+      where: { id },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+        createdBy: { select: { name: true } },
+      },
+    }),
+    prisma.invoice.findFirst({
+      where: { quotationId: id },
+      select: { id: true, invNumber: true },
+    }),
+  ]);
 
   if (!quotation) notFound();
 
@@ -42,6 +48,22 @@ export default async function QuotationViewPage({ params }: Params) {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {invoice && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📄</span>
+            <span className="text-sm text-green-800 font-medium">
+              ใบเสนอราคานี้ได้รับการอนุมัติและแปลงเป็นใบแจ้งหนี้แล้ว
+            </span>
+          </div>
+          <Link
+            href={`/invoices/${invoice.id}`}
+            className="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+          >
+            ดูใบแจ้งหนี้ {invoice.invNumber} →
+          </Link>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

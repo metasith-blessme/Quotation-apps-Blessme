@@ -23,6 +23,31 @@ export default async function ReceiptDetailPage({
 
   if (!receipt) return notFound();
 
+  let quotationInfo = null;
+  if (receipt.invoiceId) {
+    const inv = await prisma.invoice.findUnique({
+      where: { id: receipt.invoiceId },
+      select: { quotationId: true, quotationNumber: true },
+    });
+    if (inv) {
+      quotationInfo = inv;
+    }
+  } else if (receipt.billingId) {
+    const bill = await prisma.billing.findUnique({
+      where: { id: receipt.billingId },
+      select: { invoiceId: true }
+    });
+    if (bill?.invoiceId) {
+      const inv = await prisma.invoice.findUnique({
+        where: { id: bill.invoiceId },
+        select: { quotationId: true, quotationNumber: true },
+      });
+      if (inv) {
+        quotationInfo = inv;
+      }
+    }
+  }
+
   // Access control
   const isAdmin = session?.user?.role === "ADMIN";
   const isOwner = receipt.createdById === session?.user?.id;
@@ -30,6 +55,51 @@ export default async function ReceiptDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Document Connections Chain */}
+      {(receipt.invoiceId || receipt.billingId) && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm text-sm text-blue-850">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-lg">🔗</span>
+            <span className="font-semibold text-blue-900">ประวัติเอกสาร:</span>
+            {quotationInfo?.quotationId && (
+              <>
+                <Link
+                  href={`/quotations/${quotationInfo.quotationId}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {quotationInfo.quotationNumber ?? "QT-Source"}
+                </Link>
+                <span className="text-blue-300 font-bold">➔</span>
+              </>
+            )}
+            {receipt.invoiceId && (
+              <>
+                <Link
+                  href={`/invoices/${receipt.invoiceId}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {receipt.invoiceNumber ?? "INV-Source"}
+                </Link>
+                <span className="text-blue-300 font-bold">➔</span>
+              </>
+            )}
+            {receipt.billingId && (
+              <>
+                <Link
+                  href={`/billings/${receipt.billingId}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {receipt.billingNumber ?? "BN-Source"}
+                </Link>
+                <span className="text-blue-300 font-bold">➔</span>
+              </>
+            )}
+            <span className="bg-blue-600 text-white px-2.5 py-1 rounded font-mono text-xs font-bold shadow-sm">
+              {receipt.rcNumber}
+            </span>
+          </div>
+        </div>
+      )}
       <div className="mb-6 flex items-center gap-4">
         <Link
           href="/receipts"

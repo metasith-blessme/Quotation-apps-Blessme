@@ -13,13 +13,23 @@ export default async function InvoiceDetailPage({
   const session = await auth();
   const { id } = await params;
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
-    include: {
-      items: { orderBy: { sortOrder: "asc" } },
-      createdBy: { select: { name: true } },
-    },
-  });
+  const [invoice, billing, receipt] = await Promise.all([
+    prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+        createdBy: { select: { name: true } },
+      },
+    }),
+    prisma.billing.findFirst({
+      where: { invoiceId: id },
+      select: { id: true, bnNumber: true },
+    }),
+    prisma.receipt.findFirst({
+      where: { invoiceId: id },
+      select: { id: true, rcNumber: true },
+    }),
+  ]);
 
   if (!invoice) return notFound();
 
@@ -30,6 +40,51 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Document Connections Chain */}
+      {(invoice.quotationId || billing || receipt) && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm text-sm text-blue-850">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-lg">🔗</span>
+            <span className="font-semibold text-blue-900">ประวัติเอกสาร:</span>
+            {invoice.quotationId && (
+              <>
+                <Link
+                  href={`/quotations/${invoice.quotationId}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {invoice.quotationNumber ?? "QT-Source"}
+                </Link>
+                <span className="text-blue-300 font-bold">➔</span>
+              </>
+            )}
+            <span className="bg-blue-600 text-white px-2.5 py-1 rounded font-mono text-xs font-bold shadow-sm">
+              {invoice.invNumber}
+            </span>
+            {billing && (
+              <>
+                <span className="text-blue-300 font-bold">➔</span>
+                <Link
+                  href={`/billings/${billing.id}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {billing.bnNumber}
+                </Link>
+              </>
+            )}
+            {receipt && (
+              <>
+                <span className="text-blue-300 font-bold">➔</span>
+                <Link
+                  href={`/receipts/${receipt.id}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {receipt.rcNumber}
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <div className="mb-6 flex items-center gap-4">
         <Link
           href="/invoices"

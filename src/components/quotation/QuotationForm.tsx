@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateInput, addDays, formatCurrency } from "@/lib/utils/format";
 import ClientPicker from "@/components/quotation/ClientPicker";
+import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 
 interface ProductTier {
   minQty: number;
@@ -68,6 +69,46 @@ export default function QuotationForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showClientPicker, setShowClientPicker] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+
+  async function handlePreviewPDF() {
+    setPreviewLoading(true);
+    setPreviewError("");
+    setPreviewOpen(true);
+    setPreviewBlob(null);
+
+    try {
+      const payload = {
+        type: "quotation",
+        data: {
+          ...form,
+          items,
+        },
+      };
+
+      const res = await fetch("/api/preview-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error ?? "ไม่สามารถสร้าง PDF พรีวิวได้");
+      }
+
+      const blob = await res.blob();
+      setPreviewBlob(blob);
+    } catch (err: any) {
+      console.error(err);
+      setPreviewError(err.message || "เกิดข้อผิดพลาดในการโหลด PDF");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   function handleClientSelect(client: {
     name: string; address?: string | null; taxId?: string | null;
@@ -355,6 +396,37 @@ export default function QuotationForm({
                         placeholder="ชื่อสินค้า (ภาษาไทย)"
                         className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
                       />
+                      {(() => {
+                        const product = products.find((p) => p.id === item.productId);
+                        if (!product || !product.tiers || product.tiers.length === 0) return null;
+                        const sortedTiers = [...product.tiers].sort((a, b) => a.minQty - b.minQty);
+                        const activeTier = sortedTiers.slice().reverse().find((t) => item.quantity >= t.minQty);
+                        const activeMinQty = activeTier ? activeTier.minQty : null;
+
+                        return (
+                          <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1 items-center bg-gray-50/50 p-1.5 rounded border border-gray-100">
+                            <span className="font-semibold text-gray-500 bg-gray-100 px-1 py-0.5 rounded mr-1">⚡ เรท:</span>
+                            <span className={`px-1 py-0.5 rounded transition-all ${activeMinQty === null ? "text-green-700 font-bold bg-green-50 border border-green-200" : "text-gray-400"}`}>
+                              &lt;{sortedTiers[0].minQty} {product.unit} (฿{product.pricePerUnit})
+                            </span>
+                            {sortedTiers.map((t, idx) => {
+                              const isLast = idx === sortedTiers.length - 1;
+                              const rangeText = isLast 
+                                ? `${t.minQty}+` 
+                                : `${t.minQty}-${sortedTiers[idx + 1].minQty - 1}`;
+                              const isActive = activeMinQty === t.minQty;
+                              return (
+                                <span 
+                                  key={t.minQty} 
+                                  className={`px-1 py-0.5 rounded transition-all ${isActive ? "text-green-700 font-bold bg-green-50 border border-green-200" : "text-gray-400"}`}
+                                >
+                                  {rangeText} {product.unit} (฿{t.price})
+                                </span>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="py-2 pr-3">
@@ -485,6 +557,13 @@ export default function QuotationForm({
           ยกเลิก
         </button>
         <button
+          type="button"
+          onClick={handlePreviewPDF}
+          className="px-6 py-2.5 border border-green-300 text-green-700 text-sm font-medium rounded-lg hover:bg-green-50 transition-colors flex items-center gap-1.5"
+        >
+          👁️ พรีวิว PDF
+        </button>
+        <button
           type="submit"
           disabled={loading}
           className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition-colors"
@@ -498,6 +577,13 @@ export default function QuotationForm({
           onClose={() => setShowClientPicker(false)}
         />
       )}
+      <PDFPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        pdfBlob={previewBlob}
+        loading={previewLoading}
+        error={previewError}
+      />
     </form>
   );
 }

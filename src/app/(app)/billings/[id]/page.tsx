@@ -13,15 +13,32 @@ export default async function BillingDetailPage({
   const session = await auth();
   const { id } = await params;
 
-  const billing = await prisma.billing.findUnique({
-    where: { id },
-    include: {
-      items: { orderBy: { sortOrder: "asc" } },
-      createdBy: { select: { name: true } },
-    },
-  });
+  const [billing, receipt] = await Promise.all([
+    prisma.billing.findUnique({
+      where: { id },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+        createdBy: { select: { name: true } },
+      },
+    }),
+    prisma.receipt.findFirst({
+      where: { billingId: id },
+      select: { id: true, rcNumber: true },
+    }),
+  ]);
 
   if (!billing) return notFound();
+
+  let quotationInfo = null;
+  if (billing.invoiceId) {
+    const inv = await prisma.invoice.findUnique({
+      where: { id: billing.invoiceId },
+      select: { quotationId: true, quotationNumber: true },
+    });
+    if (inv) {
+      quotationInfo = inv;
+    }
+  }
 
   // Access control
   const isAdmin = session?.user?.role === "ADMIN";
@@ -30,6 +47,51 @@ export default async function BillingDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Document Connections Chain */}
+      {(billing.invoiceId || receipt) && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm text-sm text-blue-850">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-lg">🔗</span>
+            <span className="font-semibold text-blue-900">ประวัติเอกสาร:</span>
+            {quotationInfo?.quotationId && (
+              <>
+                <Link
+                  href={`/quotations/${quotationInfo.quotationId}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {quotationInfo.quotationNumber ?? "QT-Source"}
+                </Link>
+                <span className="text-blue-300 font-bold">➔</span>
+              </>
+            )}
+            {billing.invoiceId && (
+              <>
+                <Link
+                  href={`/invoices/${billing.invoiceId}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {billing.invoiceNumber ?? "INV-Source"}
+                </Link>
+                <span className="text-blue-300 font-bold">➔</span>
+              </>
+            )}
+            <span className="bg-blue-600 text-white px-2.5 py-1 rounded font-mono text-xs font-bold shadow-sm">
+              {billing.bnNumber}
+            </span>
+            {receipt && (
+              <>
+                <span className="text-blue-300 font-bold">➔</span>
+                <Link
+                  href={`/receipts/${receipt.id}`}
+                  className="bg-white border border-blue-200 hover:border-blue-400 text-blue-700 px-2.5 py-1 rounded font-mono text-xs transition-colors shadow-sm"
+                >
+                  {receipt.rcNumber}
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <div className="mb-6 flex items-center gap-4">
         <Link
           href="/billings"
@@ -66,12 +128,6 @@ export default async function BillingDetailPage({
           <p className="text-2xl font-bold text-blue-700">฿{formatCurrency(billing.grandTotal)}</p>
         </div>
       </div>
-
-      {billing.invoiceNumber && (
-        <div className="mb-6 px-4 py-2 bg-blue-50 border border-blue-100 text-blue-700 rounded-lg text-sm font-medium">
-          อ้างอิงใบแจ้งหนี้เลขที่: {billing.invoiceNumber}
-        </div>
-      )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
         <table className="w-full text-sm">
