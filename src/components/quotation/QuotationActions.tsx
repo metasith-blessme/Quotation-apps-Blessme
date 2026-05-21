@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 
 const STATUS_TRANSITIONS: Record<string, { label: string; next: string; className: string }[]> = {
   DRAFT: [
@@ -30,6 +31,33 @@ export function QuotationActions({ id, status, qtNumber, canDelete }: Props) {
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const transitions = STATUS_TRANSITIONS[status] ?? [];
+
+  // Live PDF preview states
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+
+  async function handlePreviewPDF() {
+    setPreviewLoading(true);
+    setPreviewError("");
+    setPreviewOpen(true);
+    setPreviewBlob(null);
+
+    try {
+      const res = await fetch(`/api/quotations/${id}/pdf`);
+      if (!res.ok) {
+        throw new Error("ไม่สามารถโหลดไฟล์ PDF พรีวิวได้");
+      }
+      const blob = await res.blob();
+      setPreviewBlob(blob);
+    } catch (err: any) {
+      console.error(err);
+      setPreviewError(err.message || "เกิดข้อผิดพลาดในการโหลด PDF");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   async function changeStatus(newStatus: string) {
     setLoading(true);
@@ -66,6 +94,13 @@ export function QuotationActions({ id, status, qtNumber, canDelete }: Props) {
   return (
     <>
       <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={handlePreviewPDF}
+          disabled={loading}
+          className="px-4 py-2 text-sm font-medium rounded-lg border border-green-300 text-green-700 hover:bg-green-50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          👁️ พรีวิว PDF
+        </button>
         {status === "ACCEPTED" && (
           <button
             onClick={convertToInvoice}
@@ -123,6 +158,14 @@ export function QuotationActions({ id, status, qtNumber, canDelete }: Props) {
           </div>
         </div>
       )}
+
+      <PDFPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        pdfBlob={previewBlob}
+        loading={previewLoading}
+        error={previewError}
+      />
     </>
   );
 }

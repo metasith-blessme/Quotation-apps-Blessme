@@ -45,7 +45,15 @@ export default function SettingsClient({ company }: { company: Company | null })
     if (res.ok) {
       setSuccess(true);
     } else {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      const err = await res.json().catch(() => ({}));
+      if (err.error?.fieldErrors) {
+        const messages = Object.entries(err.error.fieldErrors)
+          .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(", ")}`)
+          .join(" | ");
+        setError(`ข้อผิดพลาดการกรอกข้อมูล: ${messages}`);
+      } else {
+        setError(err.error?.message || err.error || "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      }
     }
   }
 

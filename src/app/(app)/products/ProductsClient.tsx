@@ -122,7 +122,14 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
     setLoading(false);
     if (!res.ok) {
       const err = await res.json();
-      setError(err.error?.message || "เกิดข้อผิดพลาด");
+      if (err.error?.fieldErrors) {
+        const messages = Object.entries(err.error.fieldErrors)
+          .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(", ")}`)
+          .join(" | ");
+        setError(`ข้อผิดพลาดการกรอกข้อมูล: ${messages}`);
+      } else {
+        setError(err.error?.message || err.error || "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      }
       return;
     }
     const saved = await res.json();
