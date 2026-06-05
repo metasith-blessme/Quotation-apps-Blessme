@@ -19,6 +19,14 @@ interface Product {
   lowStockThreshold: number;
   isActive: boolean;
   tiers?: ProductTier[];
+  pastedBoxes: number;
+  pastedBags: number;
+  unpackedBoxes: number;
+  unpackedBags: number;
+  chineseLabelBoxes: number;
+  pack1: number;
+  pack2: number;
+  pack3: number;
 }
 
 const emptyForm = {
@@ -30,6 +38,14 @@ const emptyForm = {
   lowStockThreshold: 0,
   isActive: true,
   tiers: [] as ProductTier[],
+  pastedBoxes: 0,
+  pastedBags: 0,
+  unpackedBoxes: 0,
+  unpackedBags: 0,
+  chineseLabelBoxes: 0,
+  pack1: 0,
+  pack2: 0,
+  pack3: 0,
 };
 
 export default function ProductsClient({ initialProducts }: { initialProducts: Product[] }) {
@@ -38,6 +54,132 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [dirtyProducts, setDirtyProducts] = useState<Record<string, boolean>>({});
+  const [savingStock, setSavingStock] = useState(false);
+  const [stockSaveSuccess, setStockSaveSuccess] = useState(false);
+
+  // Buddhist Era Date format helper
+  const getThaiBEContext = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear() + 543;
+    return { day, month, year };
+  };
+
+  const thaiDate = getThaiBEContext();
+
+  // Sort and style helper for boba products
+  const getBobaOrderIndex = (p: Product) => {
+    const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
+    if (name.includes("barley")) return 0;
+    if (name.includes("oat")) return 1;
+    if (name.includes("redbean")) return 2;
+    if (name.includes("water chestnut") || name.includes("chestnut")) return 3;
+    if (name.includes("osmanthus")) return 4;
+    if (name.includes("cheese")) return 5;
+    return 6;
+  };
+
+  const getBobaDisplay = (p: Product) => {
+    const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
+    if (name.includes("barley")) return { name: "บาร์เลย์", code: "BL", colorClass: "text-gray-900 font-bold" };
+    if (name.includes("oat")) return { name: "โอ๊ต", code: "OA", colorClass: "text-gray-900 font-bold" };
+    if (name.includes("redbean")) return { name: "ถั่วแดง", code: "RB", colorClass: "text-red-600 font-bold" };
+    if (name.includes("water chestnut") || name.includes("chestnut")) return { name: "แห้ว", code: "HW", colorClass: "text-gray-900 font-bold" };
+    if (name.includes("osmanthus")) return { name: "หมื่นลี้", code: "ML", colorClass: "text-red-600 font-bold" };
+    if (name.includes("cheese")) return { name: "ชีส", code: "CS", colorClass: "text-gray-900 font-bold" };
+    return { name: p.nameTh, code: p.nameEn ? p.nameEn.substring(0, 2).toUpperCase() : "PO", colorClass: "text-gray-900 font-bold" };
+  };
+
+  const handleGridChange = (productId: string, field: keyof Product, value: number) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === productId) {
+          return { ...p, [field]: value };
+        }
+        return p;
+      })
+    );
+    setDirtyProducts((prev) => ({ ...prev, [productId]: true }));
+  };
+
+  const saveStockGrid = async () => {
+    setSavingStock(true);
+    setError("");
+    try {
+      const dirtyIds = Object.keys(dirtyProducts).filter((id) => dirtyProducts[id]);
+      if (dirtyIds.length === 0) {
+        setSavingStock(false);
+        return;
+      }
+
+      const promises = dirtyIds.map(async (id) => {
+        const p = products.find((prod) => prod.id === id);
+        if (!p) return;
+
+        const res = await fetch(`/api/products/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nameTh: p.nameTh,
+            nameEn: p.nameEn,
+            unit: p.unit,
+            pricePerUnit: p.pricePerUnit,
+            lowStockThreshold: p.lowStockThreshold,
+            isActive: p.isActive,
+            tiers: p.tiers ?? [],
+            pastedBoxes: p.pastedBoxes,
+            pastedBags: p.pastedBags,
+            unpackedBoxes: p.unpackedBoxes,
+            unpackedBags: p.unpackedBags,
+            chineseLabelBoxes: p.chineseLabelBoxes,
+            pack1: p.pack1,
+            pack2: p.pack2,
+            pack3: p.pack3,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error?.message || `ไม่สามารถบันทึก ${p.nameTh} ได้`);
+        }
+
+        return res.json();
+      });
+
+      const updatedProducts = await Promise.all(promises);
+
+      setProducts((prev) =>
+        prev.map((p) => {
+          const updated = updatedProducts.find((up) => up && up.id === p.id);
+          return updated ? updated : p;
+        })
+      );
+
+      setDirtyProducts({});
+      setStockSaveSuccess(true);
+      setTimeout(() => setStockSaveSuccess(false), 3000);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกสต็อก";
+      setError(errMsg);
+    } finally {
+      setSavingStock(false);
+    }
+  };
+
+  const bobaProducts = products.filter(
+    (p) =>
+      p.nameEn?.toLowerCase().includes("popping boba") ||
+      p.nameTh?.toLowerCase().includes("popping boba") ||
+      p.id.startsWith("product-")
+  );
+  const sortedBobaProducts = [...bobaProducts].sort(
+    (a, b) => getBobaOrderIndex(a) - getBobaOrderIndex(b)
+  );
+
+  const hasDirtyProducts = Object.values(dirtyProducts).some((v) => v);
 
   function startEdit(p: Product) {
     setEditId(p.id);
@@ -50,6 +192,14 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
       lowStockThreshold: p.lowStockThreshold,
       isActive: p.isActive,
       tiers: p.tiers ? [...p.tiers] : [],
+      pastedBoxes: p.pastedBoxes ?? 0,
+      pastedBags: p.pastedBags ?? 0,
+      unpackedBoxes: p.unpackedBoxes ?? 0,
+      unpackedBags: p.unpackedBags ?? 0,
+      chineseLabelBoxes: p.chineseLabelBoxes ?? 0,
+      pack1: p.pack1 ?? 0,
+      pack2: p.pack2 ?? 0,
+      pack3: p.pack3 ?? 0,
     });
   }
 
@@ -116,6 +266,14 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
         pricePerUnit: Number(form.pricePerUnit),
         stockQuantity: Number(form.stockQuantity),
         lowStockThreshold: Number(form.lowStockThreshold),
+        pastedBoxes: Number(form.pastedBoxes),
+        pastedBags: Number(form.pastedBags),
+        unpackedBoxes: Number(form.unpackedBoxes),
+        unpackedBags: Number(form.unpackedBags),
+        chineseLabelBoxes: Number(form.chineseLabelBoxes),
+        pack1: Number(form.pack1),
+        pack2: Number(form.pack2),
+        pack3: Number(form.pack3),
       }),
     });
 
@@ -155,7 +313,205 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Stock Inventory Grid (Bless Me) */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">สต๊อกสินค้า Bless Me</h3>
+            <p className="text-xs text-gray-500 font-medium mt-1">
+              วันที่ <span className="text-red-600 font-bold">{thaiDate.day}</span> เดือน <span className="text-red-600 font-bold">{thaiDate.month}</span> ปี <span className="text-red-600 font-bold">{thaiDate.year}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasDirtyProducts && (
+              <span className="text-xs text-amber-600 font-medium animate-pulse">
+                ⚠️ มีข้อมูลที่ยังไม่ได้บันทึก
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={saveStockGrid}
+              disabled={savingStock || !hasDirtyProducts}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all duration-200 ${
+                hasDirtyProducts
+                  ? "bg-green-600 hover:bg-green-700 text-white cursor-pointer hover:shadow-md active:scale-95"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+              }`}
+            >
+              {savingStock ? "กำลังบันทึก..." : "บันทึกสต็อก"}
+            </button>
+          </div>
+        </div>
+
+        {stockSaveSuccess && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold rounded-lg flex items-center gap-2">
+            <span>✅ บันทึกข้อมูลสต็อกเรียบร้อยแล้ว!</span>
+          </div>
+        )}
+
+        <div className="overflow-x-auto border border-gray-300 rounded-lg">
+          <table className="w-full border-collapse text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center">ชื่อ</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-24">แปะแล้ว</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-24">แกะแล้ว</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-24">ฉลากจีน</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-20">แพ็ค 1 ถุง</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-20">แพ็ค 2 ถุง</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-20">แพ็ค 3 ถุง</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-28">รวม</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-300 bg-white">
+              {sortedBobaProducts.map((p) => {
+                const display = getBobaDisplay(p);
+                return (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    {/* ชื่อ column */}
+                    <td className="border border-gray-300 px-3 py-2 text-center font-semibold text-sm">
+                      <div className={display.colorClass}>{display.name}</div>
+                      <div className={`text-xs ${display.colorClass === 'text-red-600 font-bold' ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+                        {display.code}
+                      </div>
+                    </td>
+
+                    {/* แปะแล้ว column */}
+                    <td className="border border-gray-300 p-1">
+                      <div className="flex flex-col gap-1 items-center justify-center">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={p.pastedBoxes || ""}
+                            placeholder="0"
+                            onChange={(e) => handleGridChange(p.id, "pastedBoxes", parseInt(e.target.value) || 0)}
+                            className="w-12 text-right px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                          />
+                          <span className="text-[10px] text-gray-500 font-medium">ลัง</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={p.pastedBags || ""}
+                            placeholder="0"
+                            onChange={(e) => handleGridChange(p.id, "pastedBags", parseInt(e.target.value) || 0)}
+                            className="w-12 text-right px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                          />
+                          <span className="text-[10px] text-gray-500 font-medium">ถุง</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* แกะแล้ว column */}
+                    <td className="border border-gray-300 p-1">
+                      <div className="flex flex-col gap-1 items-center justify-center">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={p.unpackedBoxes || ""}
+                            placeholder="0"
+                            onChange={(e) => handleGridChange(p.id, "unpackedBoxes", parseInt(e.target.value) || 0)}
+                            className="w-12 text-right px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                          />
+                          <span className="text-[10px] text-gray-500 font-medium">ลัง</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={p.unpackedBags || ""}
+                            placeholder="0"
+                            onChange={(e) => handleGridChange(p.id, "unpackedBags", parseInt(e.target.value) || 0)}
+                            className="w-12 text-right px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                          />
+                          <span className="text-[10px] text-gray-500 font-medium">ถุง</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* ฉลากจีน column */}
+                    <td className="border border-gray-300 p-1">
+                      <div className="flex items-center justify-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.chineseLabelBoxes || ""}
+                          placeholder="0"
+                          onChange={(e) => handleGridChange(p.id, "chineseLabelBoxes", parseInt(e.target.value) || 0)}
+                          className="w-12 text-right px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                        />
+                        <span className="text-[10px] text-gray-500 font-medium">ลัง</span>
+                      </div>
+                    </td>
+
+                    {/* แพ็ค 1 ถุง column */}
+                    <td className="border border-gray-300 p-1">
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.pack1 || ""}
+                          placeholder="0"
+                          onChange={(e) => handleGridChange(p.id, "pack1", parseInt(e.target.value) || 0)}
+                          className="w-12 text-center px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                        />
+                      </div>
+                    </td>
+
+                    {/* แพ็ค 2 ถุง column */}
+                    <td className="border border-gray-300 p-1">
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.pack2 || ""}
+                          placeholder="0"
+                          onChange={(e) => handleGridChange(p.id, "pack2", parseInt(e.target.value) || 0)}
+                          className="w-12 text-center px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                        />
+                      </div>
+                    </td>
+
+                    {/* แพ็ค 3 ถุง column */}
+                    <td className="border border-gray-300 p-1">
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.pack3 || ""}
+                          placeholder="0"
+                          onChange={(e) => handleGridChange(p.id, "pack3", parseInt(e.target.value) || 0)}
+                          className="w-12 text-center px-1 py-0.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:outline-none bg-transparent"
+                        />
+                      </div>
+                    </td>
+
+                    {/* รวม column */}
+                    <td className="border border-gray-300 p-1 text-center bg-red-50/20">
+                      {(() => {
+                        const totalBoxes = p.pastedBoxes + p.unpackedBoxes + p.chineseLabelBoxes;
+                        const totalBags = p.pastedBags + p.unpackedBags + (p.pack1 * 1) + (p.pack2 * 2) + (p.pack3 * 3);
+                        return (
+                          <div className="text-center text-red-600 font-bold text-xs flex flex-col items-center justify-center min-h-[50px] leading-tight">
+                            {totalBoxes > 0 && <div>{totalBoxes} ลัง</div>}
+                            {totalBags > 0 && <div>{totalBags} ถุง</div>}
+                            {totalBoxes === 0 && totalBags === 0 && <div>0 ถุง</div>}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Form */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h3 className="font-medium text-gray-800 mb-4">{editId ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}</h3>

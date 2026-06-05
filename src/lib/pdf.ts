@@ -7,78 +7,100 @@ import { ReceiptPDFDocument } from "@/components/pdf/ReceiptPDFDocument";
 import { prisma } from "./db";
 import { getCachedCompany } from "./company-cache";
 
-export async function generateQuotationPDF(id: string): Promise<Buffer> {
-  const quotation = await prisma.quotation.findUnique({
+const DOCUMENT_CONFIG = {
+  QT: {
+    model: "quotation",
+    documentComponent: QuotationPDFDocument,
+    propName: "quotation",
+    label: "Quotation",
+  },
+  INV: {
+    model: "invoice",
+    documentComponent: InvoicePDFDocument,
+    propName: "invoice",
+    label: "Invoice",
+  },
+  BN: {
+    model: "billing",
+    documentComponent: BillingPDFDocument,
+    propName: "billing",
+    label: "Billing Note",
+  },
+  RC: {
+    model: "receipt",
+    documentComponent: ReceiptPDFDocument,
+    propName: "receipt",
+    label: "Receipt",
+  },
+} as const;
+
+export type DocumentTypeKey = keyof typeof DOCUMENT_CONFIG;
+
+/**
+ * Centrally compiles any system document type (Quotation, Invoice, Billing, Receipt)
+ * into a PDF Buffer using the dynamic Prisma delegates, cached company profile,
+ * and Turbopack-safe createElement renderer.
+ */
+export async function compileDocumentPDF(
+  type: DocumentTypeKey,
+  id: string
+): Promise<Buffer> {
+  const config = DOCUMENT_CONFIG[type];
+  if (!config) {
+    throw new Error(`Invalid document type: ${type}`);
+  }
+
+  // Retrieve delegate dynamically from prisma
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const delegate = (prisma as any)[config.model];
+  if (!delegate) {
+    throw new Error(`Prisma delegate for model ${config.model} not found`);
+  }
+
+  const doc = await delegate.findUnique({
     where: { id },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!quotation) throw new Error("Quotation not found");
+  if (!doc) {
+    throw new Error(`${config.label} not found with ID: ${id}`);
+  }
 
   // PERFORMANCE: Use cached company settings instead of direct DB query
   const company = await getCachedCompany();
-  if (!company) throw new Error("Company not configured");
+  if (!company) {
+    throw new Error("Company not configured");
+  }
+
+  // Standard React props object
+  const props = {
+    [config.propName]: doc,
+    company,
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element = createElement(QuotationPDFDocument as any, { quotation, company });
+  const element = createElement(config.documentComponent as any, props);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(element as any);
   return Buffer.from(buffer);
+}
+
+/*
+ * Backward-compatible single-line wrappers for other systems
+ */
+
+export async function generateQuotationPDF(id: string): Promise<Buffer> {
+  return compileDocumentPDF("QT", id);
 }
 
 export async function generateInvoicePDF(id: string): Promise<Buffer> {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-
-  if (!invoice) throw new Error("Invoice not found");
-
-  // PERFORMANCE: Use cached company settings instead of direct DB query
-  const company = await getCachedCompany();
-  if (!company) throw new Error("Company not configured");
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element = createElement(InvoicePDFDocument as any, { invoice, company });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(element as any);
-  return Buffer.from(buffer);
+  return compileDocumentPDF("INV", id);
 }
 
 export async function generateBillingPDF(id: string): Promise<Buffer> {
-  const billing = await prisma.billing.findUnique({
-    where: { id },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-
-  if (!billing) throw new Error("Billing not found");
-
-  // PERFORMANCE: Use cached company settings instead of direct DB query
-  const company = await getCachedCompany();
-  if (!company) throw new Error("Company not configured");
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element = createElement(BillingPDFDocument as any, { billing, company });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(element as any);
-  return Buffer.from(buffer);
+  return compileDocumentPDF("BN", id);
 }
 
 export async function generateReceiptPDF(id: string): Promise<Buffer> {
-  const receipt = await prisma.receipt.findUnique({
-    where: { id },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-
-  if (!receipt) throw new Error("Receipt not found");
-
-  // PERFORMANCE: Use cached company settings instead of direct DB query
-  const company = await getCachedCompany();
-  if (!company) throw new Error("Company not configured");
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element = createElement(ReceiptPDFDocument as any, { receipt, company });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(element as any);
-  return Buffer.from(buffer);
+  return compileDocumentPDF("RC", id);
 }

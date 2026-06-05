@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { quotationSchema, quotationStatusUpdateSchema } from "@/lib/validations/quotation.schema";
+import { calculateTotals } from "@/lib/financial-calculator";
+import { syncInvoiceFromQuotation } from "@/lib/document-lifecycle";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -59,15 +61,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   const data = parsed.data;
 
-  // SECURITY: Compute lineTotal server-side — never trust client calculation
-  const itemsWithComputedTotals = data.items.map((item) => ({
-    ...item,
-    lineTotal: item.quantity * item.unitPrice,
-  }));
-
-  const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
-  const vatAmount = (subtotal * data.vatRate) / 100;
-  const grandTotal = subtotal + vatAmount;
+  const { subtotal, vatAmount, grandTotal, items: itemsWithComputedTotals } = calculateTotals(data.items, data.vatRate);
 
   // Delete existing items and recreate
   await prisma.quotationItem.deleteMany({ where: { quotationId: id } });
@@ -91,7 +85,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       notes: data.notes,
       termsSnapshot: data.termsSnapshot,
       items: {
-        create: itemsWithComputedTotals.map((item, i) => ({
+        create: itemsWithComputedTotals.map((item) => ({
           productId: item.productId,
           productNameTh: item.productNameTh,
           productNameEn: item.productNameEn,
@@ -99,12 +93,20 @@ export async function PUT(req: NextRequest, { params }: Params) {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder ?? i,
+          sortOrder: item.sortOrder,
         })),
       },
     },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
+
+  // Cascade: sync linked Invoice (and downstream Billing/Receipt) with updated data
+  try {
+    await syncInvoiceFromQuotation(id);
+    console.log(`[CASCADE] Successfully synced invoice from quotation ${id}`);
+  } catch (cascadeError) {
+    console.error(`[CASCADE ERROR] Failed to sync invoice from quotation ${id}:`, cascadeError);
+  }
 
   return NextResponse.json(updated);
 }

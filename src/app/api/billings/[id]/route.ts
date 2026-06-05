@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { billingSchema, billingStatusUpdateSchema } from "@/lib/validations/billing.schema";
+import { syncReceiptsFromBilling } from "@/lib/document-lifecycle";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -107,6 +108,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
+
+  // Cascade: sync linked Receipt with updated data
+  try {
+    await syncReceiptsFromBilling(id);
+    console.log(`[CASCADE] Successfully synced receipt from billing ${id}`);
+  } catch (cascadeError) {
+    console.error(`[CASCADE ERROR] Failed to sync receipt from billing ${id}:`, cascadeError);
+  }
 
   return NextResponse.json(updated);
 }

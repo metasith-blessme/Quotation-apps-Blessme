@@ -31,6 +31,17 @@ model Product {
   stockQuantity  Float           @default(0)
   lowStockThreshold Float        @default(0)
   isActive       Boolean         @default(true)
+  
+  // Inventory breakdown fields for stock grid
+  pastedBoxes       Int          @default(0)
+  pastedBags        Int          @default(0)
+  unpackedBoxes     Int          @default(0)
+  unpackedBags      Int          @default(0)
+  chineseLabelBoxes Int          @default(0)
+  pack1             Int          @default(0)
+  pack2             Int          @default(0)
+  pack3             Int          @default(0)
+
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   tiers          ProductTier[]

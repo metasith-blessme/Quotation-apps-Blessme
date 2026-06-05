@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { generateRCNumber } from "@/lib/rc-number";
+import { convertBillingToReceipt } from "@/lib/document-lifecycle";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -11,83 +10,25 @@ export async function POST(
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
 
   const { id } = await params;
+  const userId = session.user.id;
+  const isAdmin = session.user.role === "ADMIN";
 
   try {
-    const billing = await prisma.billing.findUnique({
-      where: { id },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
-    });
+    const result = await convertBillingToReceipt(id, userId, isAdmin);
 
-    if (!billing) {
-      return new NextResponse("Billing Note not found", { status: 404 });
+    if (!result.success) {
+      if (result.error === "NOT_FOUND") {
+        return new NextResponse(result.message, { status: 404 });
+      }
+      if (result.error === "FORBIDDEN") {
+        return new NextResponse(result.message, { status: 403 });
+      }
+      return new NextResponse(result.message, { status: 500 });
     }
 
-    const isAdmin = session.user.role === "ADMIN";
-    if (!isAdmin && billing.createdById !== session.user.id) {
-      return new NextResponse("Forbidden", { status: 403 });
-    }
-
-    // Check if already converted
-    const existingReceipt = await prisma.receipt.findFirst({
-      where: { billingId: id },
-    });
-    if (existingReceipt) {
-      return NextResponse.json({ id: existingReceipt.id }, { status: 200 });
-    }
-
-    const rcNumber = await generateRCNumber();
-
-    // SECURITY: Recompute totals server-side
-    const itemsWithComputedTotals = billing.items.map((item) => ({
-      ...item,
-      lineTotal: item.quantity * item.unitPrice,
-    }));
-
-    const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
-    const vatAmount = (subtotal * billing.vatRate) / 100;
-    const grandTotal = subtotal + vatAmount;
-
-    const receipt = await prisma.receipt.create({
-      data: {
-        rcNumber,
-        status: "WAITING",
-        createdById: session.user.id,
-        billingId: billing.id,
-        billingNumber: billing.bnNumber,
-        invoiceId: billing.invoiceId,
-        invoiceNumber: billing.invoiceNumber,
-        customerName: billing.customerName,
-        customerAddress: billing.customerAddress,
-        customerTaxId: billing.customerTaxId,
-        customerPhone: billing.customerPhone,
-        customerEmail: billing.customerEmail,
-        customerContact: billing.customerContact,
-        issueDate: new Date(),
-        subtotal,
-        vatRate: billing.vatRate,
-        vatAmount,
-        grandTotal,
-        currency: billing.currency,
-        notes: billing.notes,
-        termsSnapshot: billing.termsSnapshot,
-        items: {
-          create: itemsWithComputedTotals.map((item, i) => ({
-            productId: item.productId,
-            productNameTh: item.productNameTh,
-            productNameEn: item.productNameEn,
-            unit: item.unit,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            lineTotal: item.lineTotal,
-            sortOrder: item.sortOrder ?? i,
-          })),
-        },
-      },
-    });
-
-    return NextResponse.json(receipt);
+    return NextResponse.json(result.data, { status: result.alreadyExisted ? 200 : 201 });
   } catch (error) {
-    console.error("Conversion error:", error);
+    console.error("Conversion API error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

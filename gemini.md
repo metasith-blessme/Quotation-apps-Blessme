@@ -22,6 +22,12 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
 
 ## Changelog
 
+### May 21, 2026 — Structural Architecture Modularization & Performance Optimization
+- **Phase 4 — Unified PDF Compiler Module**: Consolidates 4 redundant copy-pasted PDF generation methods in `src/lib/pdf.ts` into a single, generic `compileDocumentPDF` compiler utilizing Prisma dynamic delegates and React-PDF `createElement()`. Kept backward-compatible single-line wrappers for caller handlers.
+- **Phase 5 — Unified Zod Validation Schema Refactor**: Extracted duplicate customer details and item schema validation rules into a shared `src/lib/validations/shared.schema.ts` file, and extended them cleanly across the 4 specific document type schemas using Zod's `.extend()`.
+- **Warming Keep-Alive Endpoint**: Implemented a lightweight `/api/health` GET endpoint and updated `vercel.json` with a daily keep-alive cron warmer (fully compatible with Vercel Hobby plan constraints).
+- **Codebase Integrity**: Completed all modularizations with 100% type safety and 0 compilation errors verified by `npm run typecheck` and local unit test scripts. Fully deployed to Vercel production.
+
 ### May 12-13, 2026 — Receipt Module, PDF Critical Fix & createElement Migration
 - **Receipt Functionality:** Added Receipt model and module with "Waiting/Issued/Cancelled" status toggle via `ReceiptActions.tsx`. PATCH API at `/api/receipts/[id]`.
 - **CRITICAL PDF Fix — createElement Migration:**

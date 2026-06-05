@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { generateQTNumber } from "@/lib/qt-number";
+import { generateQTNumber } from "@/lib/sequence-generator";
 import { quotationSchema } from "@/lib/validations/quotation.schema";
+import { calculateTotals } from "@/lib/financial-calculator";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -37,15 +38,7 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
   const qtNumber = await generateQTNumber();
 
-  // SECURITY: Compute lineTotal server-side — never trust client calculation
-  const itemsWithComputedTotals = data.items.map((item) => ({
-    ...item,
-    lineTotal: item.quantity * item.unitPrice,
-  }));
-
-  const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
-  const vatAmount = (subtotal * data.vatRate) / 100;
-  const grandTotal = subtotal + vatAmount;
+  const { subtotal, vatAmount, grandTotal, items: itemsWithComputedTotals } = calculateTotals(data.items, data.vatRate);
 
   const quotation = await prisma.quotation.create({
     data: {
@@ -67,7 +60,7 @@ export async function POST(req: NextRequest) {
       notes: data.notes,
       termsSnapshot: data.termsSnapshot,
       items: {
-        create: itemsWithComputedTotals.map((item, i) => ({
+        create: itemsWithComputedTotals.map((item) => ({
           productId: item.productId,
           productNameTh: item.productNameTh,
           productNameEn: item.productNameEn,
@@ -75,7 +68,7 @@ export async function POST(req: NextRequest) {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder ?? i,
+          sortOrder: item.sortOrder,
         })),
       },
     },

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { generateQTNumber } from "@/lib/qt-number";
+import { generateQTNumber } from "@/lib/sequence-generator";
 import { addDays } from "@/lib/utils/format";
+import { calculateTotals } from "@/lib/financial-calculator";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -25,15 +26,18 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const qtNumber = await generateQTNumber();
   const today = new Date();
 
-  // SECURITY: Recompute lineTotal and totals server-side
-  const itemsWithComputedTotals = original.items.map((item) => ({
-    ...item,
-    lineTotal: item.quantity * item.unitPrice,
-  }));
-
-  const subtotal = itemsWithComputedTotals.reduce((sum, item) => sum + item.lineTotal, 0);
-  const vatAmount = (subtotal * original.vatRate) / 100;
-  const grandTotal = subtotal + vatAmount;
+  const { subtotal, vatAmount, grandTotal, items: itemsWithComputedTotals } = calculateTotals(
+    original.items.map((item) => ({
+      productId: item.productId,
+      productNameTh: item.productNameTh,
+      productNameEn: item.productNameEn,
+      unit: item.unit,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      sortOrder: item.sortOrder,
+    })),
+    original.vatRate
+  );
 
   const duplicate = await prisma.quotation.create({
     data: {

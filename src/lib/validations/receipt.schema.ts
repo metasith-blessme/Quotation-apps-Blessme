@@ -1,22 +1,9 @@
 import { z } from "zod";
+import { baseDocumentItemSchema, baseCustomerSchema } from "./shared.schema";
 
-export const receiptItemSchema = z.object({
-  productId: z.string().optional(),
-  productNameTh: z.string().min(1, "กรุณาระบุชื่อสินค้า"),
-  productNameEn: z.string().optional(),
-  unit: z.string().min(1, "กรุณาระบุหน่วย"),
-  quantity: z.number().positive("จำนวนต้องมากกว่า 0"),
-  unitPrice: z.number().min(0, "ราคาต้องไม่ติดลบ"),
-  sortOrder: z.number().optional(),
-});
+export const receiptItemSchema = baseDocumentItemSchema;
 
-export const receiptSchema = z.object({
-  customerName: z.string().min(1, "กรุณาระบุชื่อลูกค้า"),
-  customerAddress: z.string().optional(),
-  customerTaxId: z.string().optional(),
-  customerPhone: z.string().optional(),
-  customerEmail: z.string().email().optional().or(z.literal("")),
-  customerContact: z.string().optional(),
+export const receiptSchema = baseCustomerSchema.extend({
   issueDate: z.string().min(1),
   vatRate: z.number().min(0).max(100).default(7),
   notes: z.string().optional(),
