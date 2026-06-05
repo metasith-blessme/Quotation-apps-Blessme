@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCurrency } from "@/lib/utils/format";
+
 
 interface ProductTier {
   id?: string;
@@ -70,17 +70,6 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
 
   const thaiDate = getThaiBEContext();
 
-  // Sort and style helper for boba products
-  const getBobaOrderIndex = (p: Product) => {
-    const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
-    if (name.includes("barley")) return 0;
-    if (name.includes("oat")) return 1;
-    if (name.includes("redbean")) return 2;
-    if (name.includes("water chestnut") || name.includes("chestnut")) return 3;
-    if (name.includes("osmanthus")) return 4;
-    if (name.includes("cheese")) return 5;
-    return 6;
-  };
 
   const getBobaDisplay = (p: Product) => {
     const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
@@ -169,15 +158,26 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
     }
   };
 
-  const bobaProducts = products.filter(
-    (p) =>
-      p.nameEn?.toLowerCase().includes("popping boba") ||
-      p.nameTh?.toLowerCase().includes("popping boba") ||
-      p.id.startsWith("product-")
-  );
-  const sortedBobaProducts = [...bobaProducts].sort(
-    (a, b) => getBobaOrderIndex(a) - getBobaOrderIndex(b)
-  );
+  // Sort all products: boba first (in specific order), then others (by nameTh)
+  const getProductSortIndex = (p: Product) => {
+    const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
+    if (name.includes("barley")) return 0;
+    if (name.includes("oat")) return 1;
+    if (name.includes("redbean")) return 2;
+    if (name.includes("water chestnut") || name.includes("chestnut")) return 3;
+    if (name.includes("osmanthus")) return 4;
+    if (name.includes("cheese")) return 5;
+    return 100; // non-boba products go last
+  };
+
+  const sortedAllProducts = [...products].sort((a, b) => {
+    const indexA = getProductSortIndex(a);
+    const indexB = getProductSortIndex(b);
+    if (indexA !== indexB) {
+      return indexA - indexB;
+    }
+    return a.nameTh.localeCompare(b.nameTh, "th");
+  });
 
   const hasDirtyProducts = Object.values(dirtyProducts).some((v) => v);
 
@@ -354,7 +354,7 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
           <table className="w-full border-collapse text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center">ชื่อ</th>
+                <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center">ชื่อสินค้า</th>
                 <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-24">แปะแล้ว</th>
                 <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-24">แกะแล้ว</th>
                 <th className="border border-gray-300 px-3 py-2.5 font-bold text-gray-700 text-center w-24">ฉลากจีน</th>
@@ -365,15 +365,56 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-300 bg-white">
-              {sortedBobaProducts.map((p) => {
+              {sortedAllProducts.map((p) => {
                 const display = getBobaDisplay(p);
+                const isLowStock = p.stockQuantity <= p.lowStockThreshold;
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    {/* ชื่อ column */}
-                    <td className="border border-gray-300 px-3 py-2 text-center font-semibold text-sm">
-                      <div className={display.colorClass}>{display.name}</div>
-                      <div className={`text-xs ${display.colorClass === 'text-red-600 font-bold' ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-                        {display.code}
+                  <tr
+                    key={p.id}
+                    className={`hover:bg-gray-50 ${p.isActive ? "" : "opacity-60 bg-gray-50/50"} ${
+                      isLowStock ? "bg-red-50/40" : ""
+                    }`}
+                  >
+                    {/* ชื่อสินค้า column with Actions embedded */}
+                    <td className="border border-gray-300 px-3 py-2 font-semibold text-sm">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="text-left">
+                          <div className={display.colorClass}>{display.name}</div>
+                          {display.code && (
+                            <div
+                              className={`text-xs ${
+                                display.colorClass === "text-red-600 font-bold"
+                                  ? "text-red-600 font-bold"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {display.code}
+                            </div>
+                          )}
+                          {p.tiers && p.tiers.length > 0 && (
+                            <span className="inline-block mt-1 text-[9px] bg-blue-50 text-blue-600 px-1 py-0.2 rounded border border-blue-100 font-medium">
+                              มี {p.tiers.length} ราคาตามจำนวน
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(p)}
+                            className="text-xs text-blue-600 hover:underline font-bold"
+                          >
+                            แก้ไข
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(p)}
+                            className={`text-[10px] hover:underline font-medium ${
+                              p.isActive ? "text-gray-500" : "text-green-600 font-bold"
+                            }`}
+                          >
+                            {p.isActive ? "ปิด" : "เปิด"}
+                          </button>
+                        </div>
                       </div>
                     </td>
 
@@ -494,7 +535,7 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
                     <td className="border border-gray-300 p-1 text-center bg-red-50/20">
                       {(() => {
                         const totalBoxes = p.pastedBoxes + p.unpackedBoxes + p.chineseLabelBoxes;
-                        const totalBags = p.pastedBags + p.unpackedBags + (p.pack1 * 1) + (p.pack2 * 2) + (p.pack3 * 3);
+                        const totalBags = p.pastedBags + p.unpackedBags + p.pack1 * 1 + p.pack2 * 2 + p.pack3 * 3;
                         return (
                           <div className="text-center text-red-600 font-bold text-xs flex flex-col items-center justify-center min-h-[50px] leading-tight">
                             {totalBoxes > 0 && <div>{totalBoxes} ลัง</div>}
@@ -656,68 +697,6 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
           </div>
         </div>
         {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อสินค้า</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">หน่วย</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">ราคา/หน่วย</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">สต็อก</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">จุดเตือน</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-600">สถานะ</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-600">การดำเนินการ</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {products.map((p) => {
-              const isLowStock = p.stockQuantity <= p.lowStockThreshold;
-              return (
-                <tr key={p.id} className={`${p.isActive ? "" : "opacity-50"} ${isLowStock ? "bg-red-50" : ""}`}>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-800">{p.nameTh}</p>
-                    {p.nameEn && <p className="text-xs text-gray-400">{p.nameEn}</p>}
-                    {p.tiers && p.tiers.length > 0 && (
-                      <div className="flex gap-1 mt-1">
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium">
-                          มี {p.tiers.length} ราคาตามจำนวน
-                        </span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{p.unit}</td>
-                  <td className="px-4 py-3 text-right font-medium">฿{formatCurrency(p.pricePerUnit)}</td>
-                  <td className={`px-4 py-3 text-right font-bold ${isLowStock ? "text-red-600 animate-pulse" : "text-gray-800"}`}>
-                    {formatCurrency(p.stockQuantity)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-600 font-medium">{formatCurrency(p.lowStockThreshold)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        p.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {p.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-3">
-                      <button onClick={() => startEdit(p)} className="text-xs text-blue-600 hover:underline font-medium">
-                        แก้ไข
-                      </button>
-                      <button onClick={() => toggleActive(p)} className="text-xs text-gray-500 hover:underline">
-                        {p.isActive ? "ปิด" : "เปิด"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
     </div>
   );
