@@ -26,7 +26,8 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
 - **Stock Grid as Primary View:** Merged the Actual Stock page (`/actual-stock`) into the Products page (`/products`). The Products page now shows the reference-image-matching stock grid table (ชื่อ, แปะแล้ว, แกะแล้ว, ฉลากจีน, แพ็ค 1/2/3 ถุง, รวม) as the primary view.
 - **Collapsible CRUD Form:** Product add/edit form is now a collapsible panel toggled via "+ เพิ่ม/แก้ไขสินค้า" button, keeping the UI clean.
 - **Role-Based Access:** Both ADMIN and SALES can view the stock grid. ADMIN gets inline editing, stock save, and product CRUD. SALES gets read-only view.
-- **Pricing Details Table:** Added a compact pricing summary table below the stock grid (admin-only) showing unit price, total stock, low-stock threshold, and tier count.
+- **Pricing Details Table & Inline Editing:** Added a compact pricing summary table below the stock grid showing unit price, total stock, low-stock threshold, and tier count. Admins can now edit all fields (nameTh, nameEn, unit, pricePerUnit, lowStockThreshold, and stockQuantity for non-boba products) inline.
+- **Floating Save Bar:** Added a modern floating save changes bar that pops up when there are unsaved inline changes in either the stock grid or the pricing details table.
 - **Sidebar Cleanup:** Removed the separate "สต๊อกจริง / Actual Stock" nav item. Renamed to "สต๊อกสินค้า / Products" visible to all roles.
 - **Deleted:** `src/app/(app)/actual-stock/` directory (2 files: `page.tsx`, `ActualStockClient.tsx`).
 

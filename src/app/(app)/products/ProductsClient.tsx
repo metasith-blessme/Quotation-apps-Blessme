@@ -140,6 +140,14 @@ export default function ProductsClient({
     setDirtyProducts((prev) => ({ ...prev, [productId]: true }));
   };
 
+  const handleGridStringChange = (productId: string, field: "nameTh" | "nameEn" | "unit", value: string) => {
+    if (!isAdmin) return;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, [field]: value } : p))
+    );
+    setDirtyProducts((prev) => ({ ...prev, [productId]: true }));
+  };
+
   const hasDirtyProducts = Object.values(dirtyProducts).some((v) => v);
 
   const saveStockGrid = async () => {
@@ -731,49 +739,177 @@ export default function ProductsClient({
       {/* ─── Product Details Table (pricing info, below grid) ── */}
       {isAdmin && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-3 border-b border-gray-100">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
             <h3 className="text-sm font-semibold text-gray-700">รายละเอียดราคาสินค้า</h3>
+            {hasDirtyProducts && (
+              <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 font-semibold animate-pulse">
+                ⚠️ มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก
+              </span>
+            )}
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 text-xs">ชื่อสินค้า</th>
-                <th className="text-left px-4 py-2 font-medium text-gray-600 text-xs">หน่วย</th>
-                <th className="text-right px-4 py-2 font-medium text-gray-600 text-xs">ราคา/หน่วย</th>
-                <th className="text-right px-4 py-2 font-medium text-gray-600 text-xs">สต็อกรวม (ถุง)</th>
-                <th className="text-right px-4 py-2 font-medium text-gray-600 text-xs">จุดเตือน</th>
-                <th className="text-center px-4 py-2 font-medium text-gray-600 text-xs">Tiers</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sortedProducts.map((p) => {
-                const isLowStock = p.stockQuantity <= p.lowStockThreshold;
-                return (
-                  <tr key={p.id} className={isLowStock ? "bg-red-50" : ""}>
-                    <td className="px-4 py-2">
-                      <span className="font-medium text-gray-800 text-xs">{p.nameTh}</span>
-                      {p.nameEn && <span className="text-[10px] text-gray-400 ml-1">({p.nameEn})</span>}
-                    </td>
-                    <td className="px-4 py-2 text-gray-600 text-xs">{p.unit}</td>
-                    <td className="px-4 py-2 text-right font-medium text-xs">฿{formatCurrency(p.pricePerUnit)}</td>
-                    <td className={`px-4 py-2 text-right font-bold text-xs ${isLowStock ? "text-red-600" : "text-gray-800"}`}>
-                      {formatCurrency(p.stockQuantity)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-600 text-xs">{formatCurrency(p.lowStockThreshold)}</td>
-                    <td className="px-4 py-2 text-center">
-                      {p.tiers && p.tiers.length > 0 ? (
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium">
-                          {p.tiers.length} ราคา
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-gray-300">-</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-3 py-2.5 font-bold text-gray-700 text-xs w-1/3">ชื่อสินค้า (ไทย / อังกฤษ)</th>
+                  <th className="text-center px-3 py-2.5 font-bold text-gray-700 text-xs w-20">หน่วย</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">ราคา/หน่วย</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">สต็อกรวม</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">จุดเตือน</th>
+                  <th className="text-center px-3 py-2.5 font-bold text-gray-700 text-xs w-20">Tiers</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {sortedProducts.map((p) => {
+                  const isLowStock = p.stockQuantity <= p.lowStockThreshold;
+                  const isBoba =
+                    p.nameEn?.toLowerCase().includes("popping boba") ||
+                    p.nameEn?.toLowerCase().includes("popping") ||
+                    p.nameEn?.toLowerCase().includes("boba") ||
+                    p.nameTh?.toLowerCase().includes("popping boba") ||
+                    p.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
+                    p.nameTh?.toLowerCase().includes("บ๊อบบ้า");
+
+                  return (
+                    <tr key={p.id} className={`${isLowStock ? "bg-red-50/30" : "hover:bg-gray-50/30"} transition-colors`}>
+                      {/* ชื่อสินค้า */}
+                      <td className="px-3 py-2 space-y-1">
+                        <input
+                          type="text"
+                          value={p.nameTh}
+                          onChange={(e) => handleGridStringChange(p.id, "nameTh", e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white font-medium text-gray-800 transition-all"
+                          placeholder="ชื่อภาษาไทย"
+                        />
+                        <input
+                          type="text"
+                          value={p.nameEn || ""}
+                          onChange={(e) => handleGridStringChange(p.id, "nameEn", e.target.value)}
+                          className="w-full px-2 py-0.5 border border-gray-200 rounded text-[10px] focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-500 transition-all"
+                          placeholder="ชื่อภาษาอังกฤษ (English Name)"
+                        />
+                      </td>
+
+                      {/* หน่วย */}
+                      <td className="px-3 py-2 text-center">
+                        <input
+                          type="text"
+                          value={p.unit}
+                          onChange={(e) => handleGridStringChange(p.id, "unit", e.target.value)}
+                          className="w-16 px-1 py-1 border border-gray-200 rounded text-xs text-center focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-700 transition-all"
+                        />
+                      </td>
+
+                      {/* ราคา/หน่วย */}
+                      <td className="px-3 py-2">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-xs text-gray-400">฿</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={p.pricePerUnit}
+                            onChange={(e) => handleGridChange(p.id, "pricePerUnit", parseFloat(e.target.value) || 0)}
+                            className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-semibold focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all"
+                          />
+                        </div>
+                      </td>
+
+                      {/* สต็อกรวม */}
+                      <td className="px-3 py-2">
+                        {isBoba ? (
+                          <div className="flex flex-col items-end px-2 py-1">
+                            <span className={`text-xs font-bold ${isLowStock ? "text-red-600 animate-pulse" : "text-gray-800"}`}>
+                              {formatCurrency(p.stockQuantity)} {p.unit}
+                            </span>
+                            <span className="text-[9px] text-gray-400 font-medium select-none">คำนวณจากตารางบน</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={p.stockQuantity}
+                              onChange={(e) => handleGridChange(p.id, "stockQuantity", parseInt(e.target.value) || 0)}
+                              className={`w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-bold focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white transition-all ${
+                                isLowStock ? "text-red-600 border-red-200" : "text-gray-800"
+                              }`}
+                            />
+                          </div>
+                        )}
+                      </td>
+
+                      {/* จุดเตือน */}
+                      <td className="px-3 py-2">
+                        <div className="flex items-center justify-end gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={p.lowStockThreshold}
+                            onChange={(e) => handleGridChange(p.id, "lowStockThreshold", parseInt(e.target.value) || 0)}
+                            className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-600 transition-all"
+                          />
+                        </div>
+                      </td>
+
+                      {/* Tiers */}
+                      <td className="px-3 py-2 text-center">
+                        {p.tiers && p.tiers.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(p)}
+                            className="text-[10px] bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-2 py-0.5 rounded border border-blue-100 font-semibold transition-colors"
+                          >
+                            {p.tiers.length} ราคา
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(p)}
+                            className="text-[10px] text-gray-400 hover:text-blue-600 hover:underline"
+                          >
+                            + เพิ่มราคา
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Floating Save Changes Bar ── */}
+      {isAdmin && hasDirtyProducts && (
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce-subtle">
+          <div className="bg-white/95 border border-amber-200 rounded-xl px-5 py-4 shadow-xl flex items-center gap-4 max-w-md backdrop-blur-sm shadow-amber-100/40">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⚠️</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-amber-800">มีข้อมูลที่ยังไม่ได้บันทึก</span>
+                <span className="text-[10px] text-amber-600">กรุณากดบันทึกเพื่ออัปเดตข้อมูล</span>
+              </div>
+            </div>
+            <button
+              onClick={saveStockGrid}
+              disabled={savingStock}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-xs font-bold rounded-lg shadow-md transition-all duration-200 active:scale-95 whitespace-nowrap cursor-pointer flex items-center gap-1.5"
+            >
+              {savingStock ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  กำลังบันทึก...
+                </>
+              ) : (
+                "บันทึกข้อมูลทั้งหมด"
+              )}
+            </button>
+          </div>
         </div>
       )}
     </div>
