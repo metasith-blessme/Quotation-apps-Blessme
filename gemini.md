@@ -22,6 +22,14 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
 
 ## Changelog
 
+### June 6, 2026 — Products Page Redesign & Actual Stock Merge
+- **Stock Grid as Primary View:** Merged the Actual Stock page (`/actual-stock`) into the Products page (`/products`). The Products page now shows the reference-image-matching stock grid table (ชื่อ, แปะแล้ว, แกะแล้ว, ฉลากจีน, แพ็ค 1/2/3 ถุง, รวม) as the primary view.
+- **Collapsible CRUD Form:** Product add/edit form is now a collapsible panel toggled via "+ เพิ่ม/แก้ไขสินค้า" button, keeping the UI clean.
+- **Role-Based Access:** Both ADMIN and SALES can view the stock grid. ADMIN gets inline editing, stock save, and product CRUD. SALES gets read-only view.
+- **Pricing Details Table:** Added a compact pricing summary table below the stock grid (admin-only) showing unit price, total stock, low-stock threshold, and tier count.
+- **Sidebar Cleanup:** Removed the separate "สต๊อกจริง / Actual Stock" nav item. Renamed to "สต๊อกสินค้า / Products" visible to all roles.
+- **Deleted:** `src/app/(app)/actual-stock/` directory (2 files: `page.tsx`, `ActualStockClient.tsx`).
+
 ### May 21, 2026 — Structural Architecture Modularization & Performance Optimization
 - **Phase 4 — Unified PDF Compiler Module**: Consolidates 4 redundant copy-pasted PDF generation methods in `src/lib/pdf.ts` into a single, generic `compileDocumentPDF` compiler utilizing Prisma dynamic delegates and React-PDF `createElement()`. Kept backward-compatible single-line wrappers for caller handlers.
 - **Phase 5 — Unified Zod Validation Schema Refactor**: Extracted duplicate customer details and item schema validation rules into a shared `src/lib/validations/shared.schema.ts` file, and extended them cleanly across the 4 specific document type schemas using Zod's `.extend()`.

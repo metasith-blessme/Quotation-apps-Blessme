@@ -5,14 +5,17 @@ import ProductsClient from "./ProductsClient";
 
 export default async function ProductsPage() {
   const session = await auth();
-  if (session?.user?.role !== "ADMIN") redirect("/dashboard");
+  if (!session) redirect("/login");
 
-  const products = await prisma.product.findMany({ orderBy: { nameTh: "asc" } });
+  // Allow both ADMIN and SALES to view the stock grid
+  const products = await prisma.product.findMany({
+    orderBy: { nameTh: "asc" },
+    include: { tiers: { orderBy: { minQty: "asc" } } },
+  });
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">จัดการสินค้า</h2>
-      <ProductsClient initialProducts={products} />
+    <div className="max-w-5xl mx-auto">
+      <ProductsClient initialProducts={products} userRole={session.user.role} />
     </div>
   );
 }
