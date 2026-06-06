@@ -21,7 +21,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
   // Calculate stockQuantity server-side for boba products
   const isBoba =
     productData.nameEn?.toLowerCase().includes("popping boba") ||
+    productData.nameEn?.toLowerCase().includes("popping") ||
+    productData.nameEn?.toLowerCase().includes("boba") ||
     productData.nameTh?.toLowerCase().includes("popping boba") ||
+    productData.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
+    productData.nameTh?.toLowerCase().includes("บ๊อบบ้า") ||
     !!(
       productData.pastedBoxes ||
       productData.pastedBags ||

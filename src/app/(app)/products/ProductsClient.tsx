@@ -19,6 +19,14 @@ interface Product {
   lowStockThreshold: number;
   isActive: boolean;
   tiers?: ProductTier[];
+  pastedBoxes: number;
+  pastedBags: number;
+  unpackedBoxes: number;
+  unpackedBags: number;
+  chineseLabelBoxes: number;
+  pack1: number;
+  pack2: number;
+  pack3: number;
 }
 
 const emptyForm = {
@@ -30,6 +38,14 @@ const emptyForm = {
   lowStockThreshold: 0,
   isActive: true,
   tiers: [] as ProductTier[],
+  pastedBoxes: 0,
+  pastedBags: 0,
+  unpackedBoxes: 0,
+  unpackedBags: 0,
+  chineseLabelBoxes: 0,
+  pack1: 0,
+  pack2: 0,
+  pack3: 0,
 };
 
 export default function ProductsClient({ initialProducts }: { initialProducts: Product[] }) {
@@ -38,6 +54,25 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const isBobaProduct =
+    form.nameEn?.toLowerCase().includes("popping boba") ||
+    form.nameEn?.toLowerCase().includes("popping") ||
+    form.nameEn?.toLowerCase().includes("boba") ||
+    form.nameTh?.toLowerCase().includes("popping boba") ||
+    form.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
+    form.nameTh?.toLowerCase().includes("บ๊อบบ้า");
+
+  const calculatedTotalStock = isBobaProduct
+    ? (form.pastedBoxes ?? 0) * 24 +
+      (form.pastedBags ?? 0) +
+      (form.unpackedBoxes ?? 0) * 24 +
+      (form.unpackedBags ?? 0) +
+      (form.chineseLabelBoxes ?? 0) * 24 +
+      (form.pack1 ?? 0) +
+      (form.pack2 ?? 0) * 2 +
+      (form.pack3 ?? 0) * 3
+    : form.stockQuantity;
 
   function startEdit(p: Product) {
     setEditId(p.id);
@@ -50,6 +85,14 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
       lowStockThreshold: p.lowStockThreshold,
       isActive: p.isActive,
       tiers: p.tiers ? [...p.tiers] : [],
+      pastedBoxes: p.pastedBoxes ?? 0,
+      pastedBags: p.pastedBags ?? 0,
+      unpackedBoxes: p.unpackedBoxes ?? 0,
+      unpackedBags: p.unpackedBags ?? 0,
+      chineseLabelBoxes: p.chineseLabelBoxes ?? 0,
+      pack1: p.pack1 ?? 0,
+      pack2: p.pack2 ?? 0,
+      pack3: p.pack3 ?? 0,
     });
   }
 
@@ -114,8 +157,16 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
       body: JSON.stringify({
         ...form,
         pricePerUnit: Number(form.pricePerUnit),
-        stockQuantity: Number(form.stockQuantity),
+        stockQuantity: Number(calculatedTotalStock),
         lowStockThreshold: Number(form.lowStockThreshold),
+        pastedBoxes: Number(form.pastedBoxes ?? 0),
+        pastedBags: Number(form.pastedBags ?? 0),
+        unpackedBoxes: Number(form.unpackedBoxes ?? 0),
+        unpackedBags: Number(form.unpackedBags ?? 0),
+        chineseLabelBoxes: Number(form.chineseLabelBoxes ?? 0),
+        pack1: Number(form.pack1 ?? 0),
+        pack2: Number(form.pack2 ?? 0),
+        pack3: Number(form.pack3 ?? 0),
       }),
     });
 
@@ -200,15 +251,20 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">จำนวนสต็อก</label>
+             <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                {isBobaProduct ? "จำนวนสต็อก (คำนวณอัตโนมัติ)" : "จำนวนสต็อก"}
+              </label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.stockQuantity}
+                value={isBobaProduct ? calculatedTotalStock : form.stockQuantity}
+                disabled={isBobaProduct}
                 onChange={(e) => setForm({ ...form, stockQuantity: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  isBobaProduct ? "bg-gray-100 text-gray-500 font-semibold cursor-not-allowed" : ""
+                }`}
               />
             </div>
             <div>
@@ -223,6 +279,100 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
               />
             </div>
           </div>
+
+          {/* Boba Stock Breakdown Inputs */}
+          {isBobaProduct && (
+            <div className="bg-green-50/50 border border-green-200 rounded-lg p-4 space-y-3">
+              <h4 className="text-xs font-bold text-green-800 uppercase tracking-wider">
+                รายละเอียดสต๊อกสินค้าเม็ดป็อป (Popping Boba Breakdown)
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แปะแล้ว (ลัง)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.pastedBoxes}
+                    onChange={(e) => setForm({ ...form, pastedBoxes: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แปะแล้ว (ถุง)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.pastedBags}
+                    onChange={(e) => setForm({ ...form, pastedBags: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แกะแล้ว (ลัง)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.unpackedBoxes}
+                    onChange={(e) => setForm({ ...form, unpackedBoxes: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แกะแล้ว (ถุง)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.unpackedBags}
+                    onChange={(e) => setForm({ ...form, unpackedBags: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">ฉลากจีน (ลัง)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.chineseLabelBoxes}
+                    onChange={(e) => setForm({ ...form, chineseLabelBoxes: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แพ็ค 1 ถุง (จำนวน)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.pack1}
+                    onChange={(e) => setForm({ ...form, pack1: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แพ็ค 2 ถุง (จำนวน)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.pack2}
+                    onChange={(e) => setForm({ ...form, pack2: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">แพ็ค 3 ถุง (จำนวน)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.pack3}
+                    onChange={(e) => setForm({ ...form, pack3: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-green-700 italic">
+                * สต็อกรวมที่บันทึกจะคำนวณตามสูตร: 1 ลัง = 24 ถุง, แพ็ค 2 = 2 ถุง, แพ็ค 3 = 3 ถุง
+              </p>
+            </div>
+          )}
 
           {/* Pricing Tiers Section */}
           <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">

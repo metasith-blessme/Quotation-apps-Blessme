@@ -56,12 +56,12 @@ export default function ActualStockClient({
 
   const getBobaDisplay = (p: Product) => {
     const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
-    if (name.includes("barley")) return { name: "บาร์เลย์", code: "BL", colorClass: "text-gray-950 font-bold" };
-    if (name.includes("oat")) return { name: "โอ๊ต", code: "OA", colorClass: "text-gray-955 font-bold" };
-    if (name.includes("redbean")) return { name: "ถั่วแดง", code: "RB", colorClass: "text-red-600 font-bold" };
-    if (name.includes("water chestnut") || name.includes("chestnut")) return { name: "แห้ว", code: "HW", colorClass: "text-gray-955 font-bold" };
-    if (name.includes("osmanthus")) return { name: "หมื่นลี้", code: "ML", colorClass: "text-red-600 font-bold" };
-    if (name.includes("cheese")) return { name: "ชีส", code: "CS", colorClass: "text-gray-955 font-bold" };
+    if (name.includes("barley") || name.includes("บาร์เลย์")) return { name: "บาร์เลย์", code: "BL", colorClass: "text-gray-950 font-bold" };
+    if (name.includes("oat") || name.includes("โอ๊ต")) return { name: "โอ๊ต", code: "OA", colorClass: "text-gray-900 font-bold" };
+    if (name.includes("redbean") || name.includes("red bean") || name.includes("ถั่วแดง")) return { name: "ถั่วแดง", code: "RB", colorClass: "text-red-600 font-bold" };
+    if (name.includes("water chestnut") || name.includes("chestnut") || name.includes("แห้ว")) return { name: "แห้ว", code: "HW", colorClass: "text-gray-900 font-bold" };
+    if (name.includes("osmanthus") || name.includes("หมื่นลี้")) return { name: "หมื่นลี้", code: "ML", colorClass: "text-red-600 font-bold" };
+    if (name.includes("cheese") || name.includes("ชีส")) return { name: "ชีส", code: "CS", colorClass: "text-gray-900 font-bold" };
     return { name: p.nameTh, code: p.nameEn ?? "", colorClass: "text-gray-800 font-medium" };
   };
 
@@ -146,12 +146,12 @@ export default function ActualStockClient({
   // Sort boba first, then others alphabetically
   const getProductSortIndex = (p: Product) => {
     const name = (p.nameEn ?? p.nameTh ?? "").toLowerCase();
-    if (name.includes("barley")) return 0;
-    if (name.includes("oat")) return 1;
-    if (name.includes("redbean")) return 2;
-    if (name.includes("water chestnut") || name.includes("chestnut")) return 3;
-    if (name.includes("osmanthus")) return 4;
-    if (name.includes("cheese")) return 5;
+    if (name.includes("barley") || name.includes("บาร์เลย์")) return 0;
+    if (name.includes("oat") || name.includes("โอ๊ต")) return 1;
+    if (name.includes("redbean") || name.includes("red bean") || name.includes("ถั่วแดง")) return 2;
+    if (name.includes("water chestnut") || name.includes("chestnut") || name.includes("แห้ว")) return 3;
+    if (name.includes("osmanthus") || name.includes("หมื่นลี้")) return 4;
+    if (name.includes("cheese") || name.includes("ชีส")) return 5;
     return 100; // non-boba products go last
   };
 
@@ -225,7 +225,7 @@ export default function ActualStockClient({
                 <th className="border border-gray-300 px-3 py-3 font-bold text-gray-700 text-center w-24 text-base">แพ็ค 1 ถุง</th>
                 <th className="border border-gray-300 px-3 py-3 font-bold text-gray-700 text-center w-24 text-base">แพ็ค 2 ถุง</th>
                 <th className="border border-gray-300 px-3 py-3 font-bold text-gray-700 text-center w-24 text-base">แพ็ค 3 ถุง</th>
-                <th className="border border-gray-300 px-3 py-3 font-bold text-gray-700 text-center w-36 text-base bg-red-50/10">รวม</th>
+                <th className="border border-gray-300 px-3 py-3 font-bold text-red-600 text-center w-36 text-lg bg-red-50/15">รวม</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-300 bg-white">
@@ -409,12 +409,12 @@ export default function ActualStockClient({
                     </td>
 
                     {/* รวม column */}
-                    <td className="border border-gray-300 p-2 text-center bg-red-50/10">
+                    <td className="border border-gray-300 p-2 text-center bg-red-50/15">
                       {(() => {
                         const totalBoxes = p.pastedBoxes + p.unpackedBoxes + p.chineseLabelBoxes;
                         const totalBags = p.pastedBags + p.unpackedBags + p.pack1 * 1 + p.pack2 * 2 + p.pack3 * 3;
                         return (
-                          <div className="text-center text-red-600 font-bold text-sm flex flex-col items-center justify-center min-h-[55px] leading-snug">
+                          <div className="text-center text-red-600 font-bold text-base md:text-lg flex flex-col items-center justify-center min-h-[55px] leading-snug">
                             {totalBoxes > 0 && <div>{totalBoxes} ลัง</div>}
                             {totalBags > 0 && <div>{totalBags} ถุง</div>}
                             {totalBoxes === 0 && totalBags === 0 && <div>0 ถุง</div>}
