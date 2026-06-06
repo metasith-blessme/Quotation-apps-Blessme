@@ -42,6 +42,12 @@ const navItems = [
     adminOnly: false,
   },
   {
+    href: "/actual-stock",
+    label: "สต๊อกจริง / Actual Stock",
+    icon: "📊",
+    adminOnly: false,
+  },
+  {
     href: "/products",
     label: "จัดการสินค้า / Products",
     icon: "📦",
