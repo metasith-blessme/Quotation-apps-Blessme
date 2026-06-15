@@ -61,6 +61,7 @@ export default function ProductsClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [templateUnit, setTemplateUnit] = useState<"pcs" | "box">("pcs");
 
   // Stock grid state
   const [dirtyProducts, setDirtyProducts] = useState<Record<string, boolean>>({});
@@ -257,19 +258,78 @@ export default function ProductsClient({
       form.nameEn?.toLowerCase().includes("cheese") ||
       form.nameTh?.includes("ชีส") ||
       form.nameTh?.toLowerCase().includes("cheese");
-    const markup = isCheese ? 30 : 0;
-    setForm({
-      ...form,
-      pricePerUnit: 115 + markup,
-      tiers: [
-        { minQty: 6, price: 100 + markup },
-        { minQty: 12, price: 90 + markup },
-        { minQty: 24, price: 80 + markup },
-        { minQty: 120, price: 75 + markup },
-        { minQty: 240, price: 70 + markup },
-        { minQty: 2400, price: 65 + markup },
-      ],
-    });
+
+    const isTopping =
+      form.nameEn?.toLowerCase().includes("barley") ||
+      form.nameTh?.includes("บาร์เลย์") ||
+      form.nameEn?.toLowerCase().includes("redbean") ||
+      form.nameEn?.toLowerCase().includes("red bean") ||
+      form.nameTh?.includes("ถั่วแดง") ||
+      form.nameEn?.toLowerCase().includes("oat") ||
+      form.nameTh?.includes("โอ๊ต") ||
+      form.nameEn?.toLowerCase().includes("chestnut") ||
+      form.nameTh?.includes("แห้ว") ||
+      form.nameEn?.toLowerCase().includes("osmanthus") ||
+      form.nameTh?.includes("หมื่นลี้");
+
+    if (isTopping) {
+      if (templateUnit === "pcs") {
+        setForm({
+          ...form,
+          unit: "ถุง",
+          pricePerUnit: 80,
+          tiers: [
+            { minQty: 72, price: 77 },
+            { minQty: 120, price: 75 },
+            { minQty: 240, price: 70 },
+            { minQty: 2400, price: 65 },
+          ],
+        });
+      } else {
+        setForm({
+          ...form,
+          unit: "ลัง",
+          pricePerUnit: 80 * 24,
+          tiers: [
+            { minQty: 3, price: 77 * 24 },
+            { minQty: 5, price: 75 * 24 },
+            { minQty: 10, price: 70 * 24 },
+            { minQty: 100, price: 65 * 24 },
+          ],
+        });
+      }
+    } else {
+      const markup = isCheese ? 30 : 0;
+      if (templateUnit === "pcs") {
+        setForm({
+          ...form,
+          unit: "ถุง",
+          pricePerUnit: 115 + markup,
+          tiers: [
+            { minQty: 6, price: 100 + markup },
+            { minQty: 12, price: 90 + markup },
+            { minQty: 24, price: 80 + markup },
+            { minQty: 120, price: 75 + markup },
+            { minQty: 240, price: 70 + markup },
+            { minQty: 2400, price: 65 + markup },
+          ],
+        });
+      } else {
+        setForm({
+          ...form,
+          unit: "ลัง",
+          pricePerUnit: (115 + markup) * 24,
+          tiers: [
+            { minQty: 6 / 24, price: (100 + markup) * 24 },
+            { minQty: 12 / 24, price: (90 + markup) * 24 },
+            { minQty: 24 / 24, price: (80 + markup) * 24 },
+            { minQty: 120 / 24, price: (75 + markup) * 24 },
+            { minQty: 240 / 24, price: (70 + markup) * 24 },
+            { minQty: 2400 / 24, price: (65 + markup) * 24 },
+          ],
+        });
+      }
+    }
   }
 
   async function save() {
@@ -586,10 +646,28 @@ export default function ProductsClient({
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">หน่วย *</label>
-                <input type="text" value={form.unit}
-                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                  placeholder="กก., ลัง, ขวด"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                {isBobaProduct ? (
+                  <select
+                    value={
+                      form.unit === "pcs" || form.unit === "ถุง"
+                        ? "ถุง"
+                        : form.unit === "box" || form.unit === "ลัง"
+                        ? "ลัง"
+                        : ""
+                    }
+                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  >
+                    <option value="">-- เลือกหน่วย --</option>
+                    <option value="ถุง">ถุง (pcs)</option>
+                    <option value="ลัง">ลัง (box)</option>
+                  </select>
+                ) : (
+                  <input type="text" value={form.unit}
+                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    placeholder="กก., ลัง, ขวด"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">ราคาปกติ/หน่วย (฿) *</label>
@@ -684,10 +762,20 @@ export default function ProductsClient({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">ราคาพิเศษตามจำนวน (Tiers)</h4>
-                  <button type="button" onClick={applyStandardTemplate}
-                    className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 font-bold flex items-center gap-1 shadow-sm transition-colors">
-                    ✨ ใช้โครงสร้างราคามาตรฐาน
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={applyStandardTemplate}
+                      className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 font-bold flex items-center gap-1 shadow-sm transition-colors">
+                      ✨ ใช้โครงสร้างราคามาตรฐาน
+                    </button>
+                    <select
+                      value={templateUnit}
+                      onChange={(e) => setTemplateUnit(e.target.value as "pcs" | "box")}
+                      className="text-[10px] border border-gray-300 rounded px-1.5 py-0.5 bg-white text-gray-700 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm hover:bg-gray-50 transition-colors"
+                    >
+                      <option value="pcs">ถุง (pcs)</option>
+                      <option value="box">ลัง (box)</option>
+                    </select>
+                  </div>
                 </div>
                 <button type="button" onClick={addTier}
                   className="text-[10px] bg-white border border-gray-300 px-2 py-1 rounded hover:bg-gray-50 text-blue-600 font-bold">
@@ -792,12 +880,29 @@ export default function ProductsClient({
 
                       {/* หน่วย */}
                       <td className="px-3 py-2 text-center">
-                        <input
-                          type="text"
-                          value={p.unit}
-                          onChange={(e) => handleGridStringChange(p.id, "unit", e.target.value)}
-                          className="w-16 px-1 py-1 border border-gray-200 rounded text-xs text-center focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-700 transition-all"
-                        />
+                        {isBoba ? (
+                          <select
+                            value={
+                              p.unit === "pcs" || p.unit === "ถุง"
+                                ? "ถุง"
+                                : p.unit === "box" || p.unit === "ลัง"
+                                ? "ลัง"
+                                : p.unit
+                            }
+                            onChange={(e) => handleGridStringChange(p.id, "unit", e.target.value)}
+                            className="w-20 px-1 py-1 border border-gray-200 rounded text-xs text-center focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-700 transition-all cursor-pointer bg-white"
+                          >
+                            <option value="ถุง">ถุง (pcs)</option>
+                            <option value="ลัง">ลัง (box)</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={p.unit}
+                            onChange={(e) => handleGridStringChange(p.id, "unit", e.target.value)}
+                            className="w-16 px-1 py-1 border border-gray-200 rounded text-xs text-center focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-700 transition-all"
+                          />
+                        )}
                       </td>
 
                       {/* ราคา/หน่วย */}

@@ -49,6 +49,13 @@ async function main() {
     { minQty: 2400, price: 65 },
   ];
 
+  const toppingTiers = [
+    { minQty: 72, price: 77 },
+    { minQty: 120, price: 75 },
+    { minQty: 240, price: 70 },
+    { minQty: 2400, price: 65 },
+  ];
+
   const cheeseTiers = standardTiers.map(t => ({ ...t, price: t.price + 30 }));
 
   // Create sample products with tiered pricing and low stock scenarios
@@ -68,50 +75,50 @@ async function main() {
       nameTh: "Popping Boba Water chestnut", 
       nameEn: "Popping Boba Water chestnut", 
       unit: "pcs", 
-      pricePerUnit: 115, 
+      pricePerUnit: 80, 
       stockQuantity: 0, 
       lowStockThreshold: 0,
-      tiers: { create: standardTiers }
+      tiers: { create: toppingTiers }
     },
     { 
       id: "product-barley", 
       nameTh: "Popping Boba barley", 
       nameEn: "Popping Boba barley", 
       unit: "pcs", 
-      pricePerUnit: 115, 
+      pricePerUnit: 80, 
       stockQuantity: 0, 
       lowStockThreshold: 0,
-      tiers: { create: standardTiers }
+      tiers: { create: toppingTiers }
     },
     { 
       id: "product-oat", 
       nameTh: "Popping Boba oat", 
       nameEn: "Popping Boba oat", 
       unit: "pcs", 
-      pricePerUnit: 115, 
+      pricePerUnit: 80, 
       stockQuantity: 0, 
       lowStockThreshold: 0,
-      tiers: { create: standardTiers }
+      tiers: { create: toppingTiers }
     },
     { 
       id: "product-redbean", 
       nameTh: "Popping Boba Redbean", 
       nameEn: "Popping Boba Redbean", 
       unit: "pcs", 
-      pricePerUnit: 115, 
+      pricePerUnit: 80, 
       stockQuantity: 0, 
       lowStockThreshold: 0,
-      tiers: { create: standardTiers }
+      tiers: { create: toppingTiers }
     },
     { 
       id: "product-osmanthus", 
       nameTh: "Popping boba Osmanthus", 
       nameEn: "Popping boba Osmanthus", 
       unit: "pcs", 
-      pricePerUnit: 115, 
+      pricePerUnit: 80, 
       stockQuantity: 0, 
       lowStockThreshold: 0,
-      tiers: { create: standardTiers }
+      tiers: { create: toppingTiers }
     },
     { 
       id: "product-topping-sauce",
