@@ -36,6 +36,12 @@ const navItems = [
     adminOnly: false,
   },
   {
+    href: "/deliveries",
+    label: "การจัดส่ง / Deliveries",
+    icon: "🚚",
+    adminOnly: false,
+  },
+  {
     href: "/clients",
     label: "จัดการลูกค้า / Clients",
     icon: "👥",

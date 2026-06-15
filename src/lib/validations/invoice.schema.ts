@@ -21,5 +21,13 @@ export const invoiceStatusUpdateSchema = z.object({
   }),
 });
 
+// Delivery status update schema — ONLY allow valid delivery status values
+export const invoiceDeliveryStatusUpdateSchema = z.object({
+  deliveryStatus: z.enum(["PENDING", "DELIVERED"], {
+    message: "สถานะการจัดส่งไม่ถูกต้อง",
+  }),
+});
+
 export type InvoiceFormData = z.infer<typeof invoiceSchema>;
 export type InvoiceStatusUpdate = z.infer<typeof invoiceStatusUpdateSchema>;
+export type InvoiceDeliveryStatusUpdate = z.infer<typeof invoiceDeliveryStatusUpdateSchema>;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { invoiceSchema, invoiceStatusUpdateSchema } from "@/lib/validations/invoice.schema";
+import { invoiceSchema, invoiceStatusUpdateSchema, invoiceDeliveryStatusUpdateSchema } from "@/lib/validations/invoice.schema";
 import { calculateTotals } from "@/lib/financial-calculator";
 import { syncBillingFromInvoice, syncReceiptsFromInvoice } from "@/lib/document-lifecycle";
 
@@ -52,6 +52,20 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const updated = await prisma.invoice.update({
       where: { id },
       data: { status: statusParsed.data.status },
+    });
+    return NextResponse.json(updated);
+  }
+
+  // Allow deliveryStatus-only updates — SECURITY: validate deliveryStatus against enum
+  if (body.deliveryStatus && Object.keys(body).length === 1) {
+    const deliveryParsed = invoiceDeliveryStatusUpdateSchema.safeParse(body);
+    if (!deliveryParsed.success) {
+      return NextResponse.json({ error: deliveryParsed.error.flatten() }, { status: 400 });
+    }
+
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data: { deliveryStatus: deliveryParsed.data.deliveryStatus },
     });
     return NextResponse.json(updated);
   }

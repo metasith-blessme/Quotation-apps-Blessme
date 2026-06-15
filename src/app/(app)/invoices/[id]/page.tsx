@@ -105,20 +105,27 @@ export default async function InvoiceDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">ลูกค้า</p>
-          <p className="font-bold text-gray-900">{invoice.customerName}</p>
-          {invoice.customerContact && <p className="text-sm text-gray-600">{invoice.customerContact}</p>}
+          <p className="font-bold text-gray-900 truncate">{invoice.customerName}</p>
+          {invoice.customerContact && <p className="text-sm text-gray-600 truncate">{invoice.customerContact}</p>}
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">วันที่ออก / ครบกำหนด</p>
           <p className="font-bold text-gray-900">{formatDate(invoice.issueDate)}</p>
-          <p className="text-sm text-red-600 font-medium">ครบกำหนด: {invoice.dueDate ? formatDate(invoice.dueDate) : "-"}</p>
+          <p className="text-sm text-red-650 font-medium">ครบกำหนด: {invoice.dueDate ? formatDate(invoice.dueDate) : "-"}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">การจัดส่ง / Delivery</p>
+          <p className={`font-bold ${invoice.deliveryStatus === "DELIVERED" ? "text-green-700" : "text-amber-750"}`}>
+            {invoice.deliveryStatus === "DELIVERED" ? "ส่งแล้ว / Delivered" : "ยังไม่ส่ง / Pending"}
+          </p>
+          {invoice.deliveryDate && <p className="text-xs text-gray-500 mt-1">กำหนดส่ง: {formatDate(invoice.deliveryDate)}</p>}
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">ยอดรวมสุทธิ</p>
-          <p className="text-2xl font-bold text-green-700">฿{formatCurrency(invoice.grandTotal)}</p>
+          <p className="text-xl font-bold text-green-700">฿{formatCurrency(invoice.grandTotal)}</p>
         </div>
       </div>
 

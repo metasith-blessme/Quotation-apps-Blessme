@@ -169,6 +169,7 @@ model Invoice {
   id              String  @id @default(cuid())
   invNumber       String  @unique
   status          String  @default("UNPAID") // UNPAID | PAID | OVERDUE | CANCELLED
+  deliveryStatus  String  @default("PENDING") // PENDING | DELIVERED
   createdById     String
   createdBy       User    @relation(fields: [createdById], references: [id])
 
@@ -202,6 +203,7 @@ model Invoice {
   receipts  Receipt[]
 
   @@index([status])
+  @@index([deliveryStatus])
   @@index([createdById])
   @@index([createdAt])
 }

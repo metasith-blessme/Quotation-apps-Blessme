@@ -114,3 +114,17 @@ TURSO_AUTH_TOKEN=...
 AUTH_SECRET=...
 SEED_ADMIN_PASSWORD=...  # Optional; defaults to "admin1234" for local dev
 ```
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live in the repo's GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage roles map directly to standard labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout with files at the repo root. See `docs/agents/domain.md`.
