@@ -54,6 +54,12 @@ const navItems = [
     adminOnly: false,
   },
   {
+    href: "/manual",
+    label: "คู่มือการใช้งาน / Manual",
+    icon: "📖",
+    adminOnly: false,
+  },
+  {
     href: "/settings",
     label: "ตั้งค่าบริษัท / Settings",
     icon: "⚙️",
