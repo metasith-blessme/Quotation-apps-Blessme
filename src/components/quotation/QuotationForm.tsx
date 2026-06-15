@@ -58,6 +58,18 @@ const emptyItem = (): LineItem => ({
   lineTotal: 0,
 });
 
+function isPcsUnit(unit?: string) {
+  if (!unit) return true;
+  const u = unit.toLowerCase().trim();
+  return u === "pcs" || u === "ถุง" || u === "ชิ้น";
+}
+
+function isBoxUnit(unit?: string) {
+  if (!unit) return false;
+  const u = unit.toLowerCase().trim();
+  return u === "box" || u === "ลัง" || u === "กล่อง";
+}
+
 export default function QuotationForm({
   mode,
   quotationId,
@@ -153,16 +165,42 @@ export default function QuotationForm({
       .catch(() => {});
   }, []);
 
-  function getTieredPrice(productId: string | undefined, quantity: number, defaultPrice: number) {
+  function getTieredPrice(
+    productId: string | undefined,
+    itemUnit: string,
+    quantity: number,
+    defaultPrice: number
+  ) {
     if (!productId) return defaultPrice;
     const product = products.find((p) => p.id === productId);
-    if (!product || !product.tiers || product.tiers.length === 0) return defaultPrice;
+    if (!product) return defaultPrice;
 
-    // Find the tier with the highest minQty that is <= quantity
+    const isProductPcs = isPcsUnit(product.unit);
+    const isProductBox = isBoxUnit(product.unit);
+    const isItemPcs = isPcsUnit(itemUnit);
+    const isItemBox = isBoxUnit(itemUnit);
+
+    let checkQty = quantity;
+    let factor = 1;
+
+    if (isProductPcs && isItemBox) {
+      checkQty = quantity * 24;
+      factor = 24;
+    } else if (isProductBox && isItemPcs) {
+      checkQty = quantity / 24;
+      factor = 1 / 24;
+    }
+
+    if (!product.tiers || product.tiers.length === 0) {
+      return defaultPrice * factor;
+    }
+
+    // Find the tier with the highest minQty that is <= checkQty
     const sortedTiers = [...product.tiers].sort((a, b) => b.minQty - a.minQty);
-    const matchedTier = sortedTiers.find((t) => quantity >= t.minQty);
+    const matchedTier = sortedTiers.find((t) => checkQty >= t.minQty);
 
-    return matchedTier ? matchedTier.price : product.pricePerUnit;
+    const basePrice = matchedTier ? matchedTier.price : product.pricePerUnit;
+    return basePrice * factor;
   }
 
   function updateItem(index: number, updates: Partial<LineItem>) {
@@ -173,11 +211,11 @@ export default function QuotationForm({
 
       let finalUnitPrice = newValues.unitPrice;
 
-      // If quantity changed and it's a linked product, re-check tiered pricing
-      if ("quantity" in updates && newValues.productId) {
+      // If quantity or unit changed and it's a linked product, re-check tiered pricing
+      if (("quantity" in updates || "unit" in updates) && newValues.productId) {
         const product = products.find((p) => p.id === newValues.productId);
         if (product) {
-          finalUnitPrice = getTieredPrice(product.id, newValues.quantity, product.pricePerUnit);
+          finalUnitPrice = getTieredPrice(product.id, newValues.unit, newValues.quantity, product.pricePerUnit);
         }
       }
 
@@ -195,7 +233,7 @@ export default function QuotationForm({
     if (!p) return;
 
     const currentQty = items[index].quantity;
-    const unitPrice = getTieredPrice(p.id, currentQty, p.pricePerUnit);
+    const unitPrice = getTieredPrice(p.id, p.unit, currentQty, p.pricePerUnit);
 
     updateItem(index, {
       productId: p.id,
@@ -398,8 +436,34 @@ export default function QuotationForm({
                       />
                       {(() => {
                         const product = products.find((p) => p.id === item.productId);
-                        if (!product || !product.tiers || product.tiers.length === 0) return null;
-                        const sortedTiers = [...product.tiers].sort((a, b) => a.minQty - b.minQty);
+                        if (!product) return null;
+
+                        const isProductPcs = isPcsUnit(product.unit);
+                        const isProductBox = isBoxUnit(product.unit);
+                        const isItemPcs = isPcsUnit(item.unit);
+                        const isItemBox = isBoxUnit(item.unit);
+
+                        let qtyScale = 1;
+                        let priceScale = 1;
+
+                        if (isProductPcs && isItemBox) {
+                          qtyScale = 1 / 24;
+                          priceScale = 24;
+                        } else if (isProductBox && isItemPcs) {
+                          qtyScale = 24;
+                          priceScale = 1 / 24;
+                        }
+
+                        const displayPricePerUnit = product.pricePerUnit * priceScale;
+
+                        if (!product.tiers || product.tiers.length === 0) return null;
+
+                        const scaledTiers = product.tiers.map(t => ({
+                          minQty: t.minQty * qtyScale,
+                          price: t.price * priceScale
+                        }));
+
+                        const sortedTiers = [...scaledTiers].sort((a, b) => a.minQty - b.minQty);
                         const activeTier = sortedTiers.slice().reverse().find((t) => item.quantity >= t.minQty);
                         const activeMinQty = activeTier ? activeTier.minQty : null;
 
@@ -407,7 +471,7 @@ export default function QuotationForm({
                           <div className="text-[10px] mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1 items-center bg-gray-50/50 p-1.5 rounded border border-gray-100">
                             <span className="font-semibold text-gray-500 bg-gray-100 px-1 py-0.5 rounded mr-1">⚡ เรท:</span>
                             <span className={`px-1 py-0.5 rounded transition-all ${activeMinQty === null ? "text-green-700 font-bold bg-green-50 border border-green-200" : "text-gray-400"}`}>
-                              &lt;{sortedTiers[0].minQty} {product.unit} (฿{product.pricePerUnit})
+                              &lt;{sortedTiers[0].minQty} {item.unit} (฿{displayPricePerUnit})
                             </span>
                             {sortedTiers.map((t, idx) => {
                               const isLast = idx === sortedTiers.length - 1;
@@ -420,7 +484,7 @@ export default function QuotationForm({
                                   key={t.minQty} 
                                   className={`px-1 py-0.5 rounded transition-all ${isActive ? "text-green-700 font-bold bg-green-50 border border-green-200" : "text-gray-400"}`}
                                 >
-                                  {rangeText} {product.unit} (฿{t.price})
+                                  {rangeText} {item.unit} (฿{t.price})
                                 </span>
                               );
                             })}
@@ -430,14 +494,45 @@ export default function QuotationForm({
                     </div>
                   </td>
                   <td className="py-2 pr-3">
-                    <input
-                      type="text"
-                      value={item.unit}
-                      onChange={(e) => updateItem(i, { unit: e.target.value })}
-                      required
-                      placeholder="กก."
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
-                    />
+                    {(() => {
+                      const product = products.find((p) => p.id === item.productId);
+                      const isBoba = product && (
+                        product.nameEn?.toLowerCase().includes("popping boba") ||
+                        product.nameEn?.toLowerCase().includes("popping") ||
+                        product.nameEn?.toLowerCase().includes("boba") ||
+                        product.nameTh?.toLowerCase().includes("popping boba") ||
+                        product.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
+                        product.nameTh?.toLowerCase().includes("บ๊อบบ้า")
+                      );
+                      if (isBoba) {
+                        return (
+                          <select
+                            value={
+                              item.unit === "pcs" || item.unit === "ถุง"
+                                ? "ถุง"
+                                : item.unit === "box" || item.unit === "ลัง"
+                                ? "ลัง"
+                                : item.unit
+                            }
+                            onChange={(e) => updateItem(i, { unit: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500 bg-white cursor-pointer"
+                          >
+                            <option value="ถุง">ถุง (pcs)</option>
+                            <option value="ลัง">ลัง (box)</option>
+                          </select>
+                        );
+                      }
+                      return (
+                        <input
+                          type="text"
+                          value={item.unit}
+                          onChange={(e) => updateItem(i, { unit: e.target.value })}
+                          required
+                          placeholder="หน่วย"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
+                        />
+                      );
+                    })()}
                   </td>
                   <td className="py-2 pr-3">
                     <input
