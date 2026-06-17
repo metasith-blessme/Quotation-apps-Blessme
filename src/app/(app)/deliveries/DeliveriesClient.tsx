@@ -215,24 +215,27 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
                     <td className="px-4 py-3 text-center">
                       {/* ponytail: interactive delivery status dropdown */}
                       {canEdit ? (
-                        <select
-                          disabled={isUpdating || isPending}
-                          value={i.deliveryStatus}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleToggleDeliveryStatus(i.id, e.target.value as "PENDING" | "DELIVERED");
-                          }}
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${
-                            i.deliveryStatus === "DELIVERED"
-                              ? "bg-green-100 text-green-800 border border-green-200"
-                              : "bg-amber-100 text-amber-800 border border-amber-200"
-                          }`}
-                          style={{ textAlignLast: "center" }}
-                        >
-                          <option value="PENDING">ยังไม่ส่ง</option>
-                          <option value="DELIVERED">ส่งแล้ว</option>
-                        </select>
+                        <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            disabled={isUpdating || isPending}
+                            value={i.deliveryStatus}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleToggleDeliveryStatus(i.id, e.target.value as "PENDING" | "DELIVERED");
+                            }}
+                            className={`inline-block pl-2.5 pr-6 py-0.5 rounded-full text-xs font-semibold border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-left ${
+                              i.deliveryStatus === "DELIVERED"
+                                ? "bg-green-100 text-green-800 border border-green-200"
+                                : "bg-amber-100 text-amber-800 border border-amber-200"
+                            }`}
+                            style={{ textAlignLast: "left" }}
+                          >
+                            <option value="PENDING">ยังไม่ส่ง</option>
+                            <option value="DELIVERED">ส่งแล้ว</option>
+                          </select>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] opacity-60">▼</span>
+                        </div>
                       ) : (
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${

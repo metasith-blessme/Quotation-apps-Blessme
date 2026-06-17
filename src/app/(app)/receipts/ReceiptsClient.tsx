@@ -139,43 +139,46 @@ export default function ReceiptsClient({ receipts }: Props) {
                     ฿{formatCurrency(r.grandTotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {/* ponytail: inline select toggle for instant status change */}
-                    <select
-                      value={r.status}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={async (e) => {
-                        e.stopPropagation();
-                        const newStatus = e.target.value;
-                        const oldStatus = r.status;
+                    {/* ponytail: inline select toggle with styled drop-down chevron */}
+                    <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={r.status}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={async (e) => {
+                          e.stopPropagation();
+                          const newStatus = e.target.value;
+                          const oldStatus = r.status;
 
-                        setList((prev) =>
-                          prev.map((item) => (item.id === r.id ? { ...item, status: newStatus } : item))
-                        );
-
-                        try {
-                          const res = await fetch(`/api/receipts/${r.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ status: newStatus }),
-                          });
-                          if (!res.ok) {
-                            const errData = await res.text();
-                            throw new Error(errData || "เปลี่ยนสถานะไม่สำเร็จ");
-                          }
-                        } catch (err: any) {
-                          alert(err.message);
                           setList((prev) =>
-                            prev.map((item) => (item.id === r.id ? { ...item, status: oldStatus } : item))
+                            prev.map((item) => (item.id === r.id ? { ...item, status: newStatus } : item))
                           );
-                        }
-                      }}
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${STATUS_COLORS[r.status]}`}
-                      style={{ textAlignLast: "center" }}
-                    >
-                      <option value="WAITING">รอออก</option>
-                      <option value="ISSUED">ออกแล้ว</option>
-                      <option value="CANCELLED">ยกเลิก</option>
-                    </select>
+
+                          try {
+                            const res = await fetch(`/api/receipts/${r.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: newStatus }),
+                            });
+                            if (!res.ok) {
+                              const errData = await res.text();
+                              throw new Error(errData || "เปลี่ยนสถานะไม่สำเร็จ");
+                            }
+                          } catch (err: any) {
+                            alert(err.message);
+                            setList((prev) =>
+                              prev.map((item) => (item.id === r.id ? { ...item, status: oldStatus } : item))
+                            );
+                          }
+                        }}
+                        className={`inline-block pl-2.5 pr-6 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-left ${STATUS_COLORS[r.status]}`}
+                        style={{ textAlignLast: "left" }}
+                      >
+                        <option value="WAITING">รอออก</option>
+                        <option value="ISSUED">ออกแล้ว</option>
+                        <option value="CANCELLED">ยกเลิก</option>
+                      </select>
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] opacity-60">▼</span>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">

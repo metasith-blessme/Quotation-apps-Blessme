@@ -177,6 +177,7 @@ export default function RecentActivitiesClient({
                   <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
                     {/* ponytail: prevent default navigation when selecting status */}
                     <div
+                      className="relative inline-block"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -190,10 +191,10 @@ export default function RecentActivitiesClient({
                           e.stopPropagation();
                           handleStatusChange(q.id, e.target.value, "quotation");
                         }}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-center focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
                           QT_STATUS_COLORS[q.status]
                         }`}
-                        style={{ textAlignLast: "center" }}
+                        style={{ textAlignLast: "left" }}
                       >
                         <option value="DRAFT">ร่าง</option>
                         <option value="SENT">ส่งแล้ว</option>
@@ -201,6 +202,7 @@ export default function RecentActivitiesClient({
                         <option value="REJECTED">ปฏิเสธ</option>
                         <option value="EXPIRED">หมดอายุ</option>
                       </select>
+                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
                     </div>
                     <span className="text-xs text-gray-500">฿{formatCurrency(q.grandTotal)}</span>
                   </div>
@@ -236,6 +238,7 @@ export default function RecentActivitiesClient({
                   <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
                     {/* ponytail: prevent default navigation when selecting status */}
                     <div
+                      className="relative inline-block"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -249,16 +252,17 @@ export default function RecentActivitiesClient({
                           e.stopPropagation();
                           handleStatusChange(inv.id, e.target.value, "invoice");
                         }}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-center focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
                           INV_STATUS_COLORS[inv.status]
                         }`}
-                        style={{ textAlignLast: "center" }}
+                        style={{ textAlignLast: "left" }}
                       >
                         <option value="UNPAID">ค้างชำระ</option>
                         <option value="PAID">ชำระแล้ว</option>
                         <option value="OVERDUE">เกินกำหนด</option>
                         <option value="CANCELLED">ยกเลิก</option>
                       </select>
+                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
                     </div>
                     <span className="text-xs text-gray-500">฿{formatCurrency(inv.grandTotal)}</span>
                   </div>
@@ -294,6 +298,7 @@ export default function RecentActivitiesClient({
                   <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
                     {/* ponytail: prevent default navigation when selecting status */}
                     <div
+                      className="relative inline-block"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -307,15 +312,16 @@ export default function RecentActivitiesClient({
                           e.stopPropagation();
                           handleStatusChange(bn.id, e.target.value, "billing");
                         }}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-center focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
                           BN_STATUS_COLORS[bn.status]
                         }`}
-                        style={{ textAlignLast: "center" }}
+                        style={{ textAlignLast: "left" }}
                       >
                         <option value="PENDING">รอเก็บเงิน</option>
                         <option value="COLLECTED">เก็บแล้ว</option>
                         <option value="CANCELLED">ยกเลิก</option>
                       </select>
+                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
                     </div>
                     <span className="text-xs text-gray-500">฿{formatCurrency(bn.grandTotal)}</span>
                   </div>
@@ -351,6 +357,7 @@ export default function RecentActivitiesClient({
                   <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
                     {/* ponytail: prevent default navigation when selecting status */}
                     <div
+                      className="relative inline-block"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -364,15 +371,16 @@ export default function RecentActivitiesClient({
                           e.stopPropagation();
                           handleStatusChange(rc.id, e.target.value, "receipt");
                         }}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-center focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
                           RC_STATUS_COLORS[rc.status]
                         }`}
-                        style={{ textAlignLast: "center" }}
+                        style={{ textAlignLast: "left" }}
                       >
                         <option value="WAITING">รอออก</option>
                         <option value="ISSUED">ออกแล้ว</option>
                         <option value="CANCELLED">ยกเลิก</option>
                       </select>
+                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
                     </div>
                     <span className="text-xs text-gray-500">฿{formatCurrency(rc.grandTotal)}</span>
                   </div>
