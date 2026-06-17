@@ -165,48 +165,37 @@ export default function RecentActivitiesClient({
         ) : (
           <ul className="space-y-2">
             {quotations.map((q) => (
-              <li key={q.id}>
+              <li key={q.id} className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors">
                 <Link
                   href={`/quotations/${q.id}`}
-                  className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                  className="min-w-0 flex-1"
                 >
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs text-gray-500">{q.qtNumber}</p>
-                    <p className="text-sm text-gray-800 truncate">{q.customerName}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                    {/* ponytail: prevent default navigation when selecting status */}
-                    <div
-                      className="relative inline-block"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      <select
-                        disabled={updatingId === q.id || isPending}
-                        value={q.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(q.id, e.target.value, "quotation");
-                        }}
-                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
-                          QT_STATUS_COLORS[q.status]
-                        }`}
-                        style={{ textAlignLast: "left" }}
-                      >
-                        <option value="DRAFT">ร่าง</option>
-                        <option value="SENT">ส่งแล้ว</option>
-                        <option value="ACCEPTED">อนุมัติ</option>
-                        <option value="REJECTED">ปฏิเสธ</option>
-                        <option value="EXPIRED">หมดอายุ</option>
-                      </select>
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
-                    </div>
-                    <span className="text-xs text-gray-500">฿{formatCurrency(q.grandTotal)}</span>
-                  </div>
+                  <p className="font-mono text-xs text-gray-500">{q.qtNumber}</p>
+                  <p className="text-sm text-gray-800 truncate">{q.customerName}</p>
                 </Link>
+                <div className="flex flex-col items-end gap-1 ml-2 shrink-0 relative z-10">
+                  <div className="relative inline-block">
+                    <select
+                      disabled={updatingId === q.id || isPending}
+                      value={q.status}
+                      onChange={(e) => {
+                        handleStatusChange(q.id, e.target.value, "quotation");
+                      }}
+                      className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        QT_STATUS_COLORS[q.status]
+                      }`}
+                      style={{ textAlignLast: "left" }}
+                    >
+                      <option value="DRAFT">ร่าง</option>
+                      <option value="SENT">ส่งแล้ว</option>
+                      <option value="ACCEPTED">อนุมัติ</option>
+                      <option value="REJECTED">ปฏิเสธ</option>
+                      <option value="EXPIRED">หมดอายุ</option>
+                    </select>
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
+                  </div>
+                  <span className="text-xs text-gray-500">฿{formatCurrency(q.grandTotal)}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -226,47 +215,36 @@ export default function RecentActivitiesClient({
         ) : (
           <ul className="space-y-2">
             {invoices.map((inv) => (
-              <li key={inv.id}>
+              <li key={inv.id} className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors">
                 <Link
                   href={`/invoices/${inv.id}`}
-                  className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                  className="min-w-0 flex-1"
                 >
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs text-gray-500">{inv.invNumber}</p>
-                    <p className="text-sm text-gray-800 truncate">{inv.customerName}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                    {/* ponytail: prevent default navigation when selecting status */}
-                    <div
-                      className="relative inline-block"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      <select
-                        disabled={updatingId === inv.id || isPending}
-                        value={inv.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(inv.id, e.target.value, "invoice");
-                        }}
-                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
-                          INV_STATUS_COLORS[inv.status]
-                        }`}
-                        style={{ textAlignLast: "left" }}
-                      >
-                        <option value="UNPAID">ค้างชำระ</option>
-                        <option value="PAID">ชำระแล้ว</option>
-                        <option value="OVERDUE">เกินกำหนด</option>
-                        <option value="CANCELLED">ยกเลิก</option>
-                      </select>
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
-                    </div>
-                    <span className="text-xs text-gray-500">฿{formatCurrency(inv.grandTotal)}</span>
-                  </div>
+                  <p className="font-mono text-xs text-gray-500">{inv.invNumber}</p>
+                  <p className="text-sm text-gray-800 truncate">{inv.customerName}</p>
                 </Link>
+                <div className="flex flex-col items-end gap-1 ml-2 shrink-0 relative z-10">
+                  <div className="relative inline-block">
+                    <select
+                      disabled={updatingId === inv.id || isPending}
+                      value={inv.status}
+                      onChange={(e) => {
+                        handleStatusChange(inv.id, e.target.value, "invoice");
+                      }}
+                      className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        INV_STATUS_COLORS[inv.status]
+                      }`}
+                      style={{ textAlignLast: "left" }}
+                    >
+                      <option value="UNPAID">ค้างชำระ</option>
+                      <option value="PAID">ชำระแล้ว</option>
+                      <option value="OVERDUE">เกินกำหนด</option>
+                      <option value="CANCELLED">ยกเลิก</option>
+                    </select>
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
+                  </div>
+                  <span className="text-xs text-gray-500">฿{formatCurrency(inv.grandTotal)}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -286,46 +264,35 @@ export default function RecentActivitiesClient({
         ) : (
           <ul className="space-y-2">
             {billings.map((bn) => (
-              <li key={bn.id}>
+              <li key={bn.id} className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors">
                 <Link
                   href={`/billings/${bn.id}`}
-                  className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                  className="min-w-0 flex-1"
                 >
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs text-gray-500">{bn.bnNumber}</p>
-                    <p className="text-sm text-gray-800 truncate">{bn.customerName}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                    {/* ponytail: prevent default navigation when selecting status */}
-                    <div
-                      className="relative inline-block"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      <select
-                        disabled={updatingId === bn.id || isPending}
-                        value={bn.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(bn.id, e.target.value, "billing");
-                        }}
-                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
-                          BN_STATUS_COLORS[bn.status]
-                        }`}
-                        style={{ textAlignLast: "left" }}
-                      >
-                        <option value="PENDING">รอเก็บเงิน</option>
-                        <option value="COLLECTED">เก็บแล้ว</option>
-                        <option value="CANCELLED">ยกเลิก</option>
-                      </select>
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
-                    </div>
-                    <span className="text-xs text-gray-500">฿{formatCurrency(bn.grandTotal)}</span>
-                  </div>
+                  <p className="font-mono text-xs text-gray-500">{bn.bnNumber}</p>
+                  <p className="text-sm text-gray-800 truncate">{bn.customerName}</p>
                 </Link>
+                <div className="flex flex-col items-end gap-1 ml-2 shrink-0 relative z-10">
+                  <div className="relative inline-block">
+                    <select
+                      disabled={updatingId === bn.id || isPending}
+                      value={bn.status}
+                      onChange={(e) => {
+                        handleStatusChange(bn.id, e.target.value, "billing");
+                      }}
+                      className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        BN_STATUS_COLORS[bn.status]
+                      }`}
+                      style={{ textAlignLast: "left" }}
+                    >
+                      <option value="PENDING">รอเก็บเงิน</option>
+                      <option value="COLLECTED">เก็บแล้ว</option>
+                      <option value="CANCELLED">ยกเลิก</option>
+                    </select>
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
+                  </div>
+                  <span className="text-xs text-gray-500">฿{formatCurrency(bn.grandTotal)}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -345,46 +312,35 @@ export default function RecentActivitiesClient({
         ) : (
           <ul className="space-y-2">
             {receipts.map((rc) => (
-              <li key={rc.id}>
+              <li key={rc.id} className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors">
                 <Link
                   href={`/receipts/${rc.id}`}
-                  className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                  className="min-w-0 flex-1"
                 >
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs text-gray-500">{rc.rcNumber}</p>
-                    <p className="text-sm text-gray-800 truncate">{rc.customerName}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                    {/* ponytail: prevent default navigation when selecting status */}
-                    <div
-                      className="relative inline-block"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      <select
-                        disabled={updatingId === rc.id || isPending}
-                        value={rc.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(rc.id, e.target.value, "receipt");
-                        }}
-                        className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
-                          RC_STATUS_COLORS[rc.status]
-                        }`}
-                        style={{ textAlignLast: "left" }}
-                      >
-                        <option value="WAITING">รอออก</option>
-                        <option value="ISSUED">ออกแล้ว</option>
-                        <option value="CANCELLED">ยกเลิก</option>
-                      </select>
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
-                    </div>
-                    <span className="text-xs text-gray-500">฿{formatCurrency(rc.grandTotal)}</span>
-                  </div>
+                  <p className="font-mono text-xs text-gray-500">{rc.rcNumber}</p>
+                  <p className="text-sm text-gray-800 truncate">{rc.customerName}</p>
                 </Link>
+                <div className="flex flex-col items-end gap-1 ml-2 shrink-0 relative z-10">
+                  <div className="relative inline-block">
+                    <select
+                      disabled={updatingId === rc.id || isPending}
+                      value={rc.status}
+                      onChange={(e) => {
+                        handleStatusChange(rc.id, e.target.value, "receipt");
+                      }}
+                      className={`text-[10px] pl-2 pr-5 py-0.5 rounded-full font-medium border-0 cursor-pointer appearance-none text-left focus:outline-none focus:ring-1 focus:ring-green-500 ${
+                        RC_STATUS_COLORS[rc.status]
+                      }`}
+                      style={{ textAlignLast: "left" }}
+                    >
+                      <option value="WAITING">รอออก</option>
+                      <option value="ISSUED">ออกแล้ว</option>
+                      <option value="CANCELLED">ยกเลิก</option>
+                    </select>
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] opacity-60">▼</span>
+                  </div>
+                  <span className="text-xs text-gray-500">฿{formatCurrency(rc.grandTotal)}</span>
+                </div>
               </li>
             ))}
           </ul>
