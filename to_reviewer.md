@@ -1,7 +1,7 @@
 # Reviewer Instructions
 
 ## Summary of Current State
-The BlessMe Topping quotation app is production-deployed on Vercel with full document lifecycle support (Quotation → Invoice → Billing Note → Receipt). Recent work (May 12-13) fixed critical PDF rendering bugs and added the Receipt status toggle. May 13 session added performance optimizations (groupBy on all list pages), data integrity fixes (sortOrder in conversions, financial recomputation in duplicate route), and custom validation agents.
+The BlessMe Topping quotation app is production-deployed on Vercel with full document lifecycle support (Quotation → Invoice → Billing Note → Receipt). Recent work added inline interactive status toggle select elements with custom chevron visual indicators (▼) across all listing pages (Quotations, Invoices, Billings, Receipts, Deliveries) and the Homepage Dashboard, separating dropdown components from row navigation links to prevent click event blocking. Previous work fixed critical PDF rendering bugs, added performance optimizations (groupBy on all list pages), data integrity fixes (sortOrder in conversions, financial recomputation in duplicate route), and custom validation agents.
 
 ## Areas to Verify
 
@@ -46,6 +46,11 @@ The BlessMe Topping quotation app is production-deployed on Vercel with full doc
 - **ADMIN:** Can see all documents across all users
 - **SALES:** Can only see own documents (filtered by `createdById`)
 
+### 7. Interactive Status Toggles (June 17 updates)
+- **Visual indicators:** Open dashboard and list pages, verify all status badges show a clear dropdown arrow (`▼`) indicating interactivity.
+- **Homepage select dropdown action:** Click on any status selector in the "Recent Activities" widgets. Verify the dropdown opens natively and changing the status successfully updates the database without triggering page navigation.
+- **List views updates:** Verify inline status switches work on Quotations, Invoices, Billings, Receipts, and Deliveries list pages.
+
 ## Maintenance Notes
 
 ### Database Migrations
@@ -80,6 +85,11 @@ Located in `src/lib/validations/`:
 - QTSequence, INVSequence, BNSequence, RCSequence (auto-numbering per year)
 - User, Product, Client, Company (singleton settings)
 - All document models have indexes on `status`, `createdById`, `createdAt`
+
+### Interactive Dropdowns inside Clickable Rows
+- **CRITICAL:** When rendering a custom status dropdown selector inside list rows that navigate to details pages (like on the Dashboard widgets), **never nest the `<select>` tag inside a `<Link>` or `<a>` element**.
+- Nesting interactive elements inside anchor tags triggers event conflicts, and using `e.preventDefault()` on parent elements to stop navigation will also block the browser's default action of opening the select dropdown.
+- Always use a split row layout where the details/Link part and the status dropdown container are rendered as sibling elements.
 
 ### Debug Endpoints
 - Debug PDF endpoints (`/api/debug-pdf`, `/api/debug-pdf/test`) have been removed (cleaned up 2026-05-13).

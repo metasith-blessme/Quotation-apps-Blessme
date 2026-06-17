@@ -1,5 +1,20 @@
 # Decision Log
 
+## June 17, 2026
+
+### 23. Inline Interactive Status Toggles Across All Document Modules and Dashboard
+- **Decision:** Implement interactive status dropdown selectors (`<select>`) for Quotations, Invoices, Billings, Receipts, Deliveries, and Dashboard Recent lists directly on their parent index pages.
+- **Rationale:** Previously, users had to click on a document's detail page or navigate to change its status. Now, users can update status inline without leaving the lists or dashboard homepage, saving time.
+- **Implementation:** Custom `<select>` elements styled with color coding matching standard badges.
+
+### 24. Separation of Navigation Links from Status Select Elements
+- **Decision:** Restructured homepage lists in `RecentActivitiesClient.tsx` to separate the parent `<Link>` container from the `<select>` status toggle.
+- **Rationale:** Nesting an interactive `<select>` inside an `<a>` anchor element (rendered by `<Link>`) triggers standard browser event conflicts. Using `e.preventDefault()` on parent wrapper clicks to stop routing also blocks the browser from opening the select dropdown. Separating the elements into siblings under the row `<li>` allows native click-to-open select behavior without triggering navigation.
+
+### 25. Styled Chevron Indicator for Toggles
+- **Decision:** Wrapped all status selectors in a relative container with an absolute trailing chevron arrow span (`▼`).
+- **Rationale:** The initial version of the custom select used `appearance-none` to hide browser borders and arrow styles to match static pill badges. However, this left users with no visual indicator that the pills were interactive. Adding the chevron provides immediate visual affordance.
+
 ## May 13, 2026
 
 ### 19. groupBy Aggregates for All List Pages

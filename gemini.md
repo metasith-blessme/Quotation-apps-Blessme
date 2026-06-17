@@ -22,6 +22,12 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
 
 ## Changelog
 
+### June 17, 2026 — Inline Interactive Status Toggles & Navigation Fix
+- **Inline Status Dropdowns**: Implemented instant status select dropdown toggles across all listing pages (Quotations, Invoices, Billings, Receipts, Deliveries) and the Homepage Dashboard, enabling status changes without navigating.
+- **Styled Chevron Affordance**: Wrapped all dropdown selectors in a relative container with a trailing absolute chevron (`▼`) to provide a clear interactive affordance, distinguishing them from static text badges.
+- **Dashboard Click Interactivity**: Refactored `RecentActivitiesClient.tsx` to separate the row `<Link>` component from the status select toggles. This prevents click event nesting conflicts where parent routing clicks or `preventDefault` blocks the dropdown options from opening natively.
+- **Manual CLI Deploy Integration**: Verified production pipeline using explicit `npx vercel --prod` deployments, resolving integration gaps between Github push triggers and the live Vercel endpoint.
+
 ### June 6, 2026 — Products Page Redesign & Actual Stock Merge
 - **Stock Grid as Primary View:** Merged the Actual Stock page (`/actual-stock`) into the Products page (`/products`). The Products page now shows the reference-image-matching stock grid table (ชื่อ, แปะแล้ว, แกะแล้ว, ฉลากจีน, แพ็ค 1/2/3 ถุง, รวม) as the primary view.
 - **Collapsible CRUD Form:** Product add/edit form is now a collapsible panel toggled via "+ เพิ่ม/แก้ไขสินค้า" button, keeping the UI clean.
