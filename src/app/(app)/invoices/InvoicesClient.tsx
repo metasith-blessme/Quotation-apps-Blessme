@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
@@ -32,15 +32,19 @@ interface Invoice {
 
 interface Props {
   invoices: Invoice[];
-  counts: { total: number; unpaid: number; paid: number; cancelled: number };
 }
 
-export default function InvoicesClient({ invoices, counts }: Props) {
+export default function InvoicesClient({ invoices }: Props) {
+  const [list, setList] = useState(invoices);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  useEffect(() => {
+    setList(invoices);
+  }, [invoices]);
+
   const filtered = useMemo(() => {
-    return invoices.filter((i) => {
+    return list.filter((i) => {
       const matchesSearch =
         search === "" ||
         i.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,17 +53,26 @@ export default function InvoicesClient({ invoices, counts }: Props) {
       const matchesStatus = statusFilter === "ALL" || i.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [invoices, search, statusFilter]);
+  }, [list, search, statusFilter]);
+
+  const localCounts = useMemo(() => {
+    return {
+      total: list.length,
+      unpaid: list.filter((i) => i.status === "UNPAID").length,
+      paid: list.filter((i) => i.status === "PAID").length,
+      cancelled: list.filter((i) => i.status === "CANCELLED").length,
+    };
+  }, [list]);
 
   return (
     <>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "ทั้งหมด", value: counts.total, color: "text-gray-700" },
-          { label: "ค้างชำระ", value: counts.unpaid, color: "text-orange-600" },
-          { label: "ชำระแล้ว", value: counts.paid, color: "text-green-600" },
-          { label: "ยกเลิก", value: counts.cancelled, color: "text-gray-500" },
+          { label: "ทั้งหมด", value: localCounts.total, color: "text-gray-700" },
+          { label: "ค้างชำระ", value: localCounts.unpaid, color: "text-orange-600" },
+          { label: "ชำระแล้ว", value: localCounts.paid, color: "text-green-600" },
+          { label: "ยกเลิก", value: localCounts.cancelled, color: "text-gray-500" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
@@ -96,9 +109,9 @@ export default function InvoicesClient({ invoices, counts }: Props) {
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">💰</p>
             <p className="font-medium">
-              {invoices.length === 0 ? "ยังไม่มีใบแจ้งหนี้" : "ไม่พบใบแจ้งหนี้ที่ค้นหา"}
+              {list.length === 0 ? "ยังไม่มีใบแจ้งหนี้" : "ไม่พบใบแจ้งหนี้ที่ค้นหา"}
             </p>
-            {invoices.length === 0 && (
+            {list.length === 0 && (
               <p className="text-sm mt-1">ออกใบแจ้งหนี้จากหน้า &quot;ใบเสนอราคา&quot;</p>
             )}
           </div>
@@ -128,9 +141,44 @@ export default function InvoicesClient({ invoices, counts }: Props) {
                     ฿{formatCurrency(i.grandTotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[i.status]}`}>
-                      {STATUS_LABELS[i.status]}
-                    </span>
+                    {/* ponytail: inline select toggle for instant status change */}
+                    <select
+                      value={i.status}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={async (e) => {
+                        e.stopPropagation();
+                        const newStatus = e.target.value;
+                        const oldStatus = i.status;
+
+                        setList((prev) =>
+                          prev.map((item) => (item.id === i.id ? { ...item, status: newStatus } : item))
+                        );
+
+                        try {
+                          const res = await fetch(`/api/invoices/${i.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus }),
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json();
+                            throw new Error(errData.error || "เปลี่ยนสถานะไม่สำเร็จ");
+                          }
+                        } catch (err: any) {
+                          alert(err.message);
+                          setList((prev) =>
+                            prev.map((item) => (item.id === i.id ? { ...item, status: oldStatus } : item))
+                          );
+                        }
+                      }}
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${STATUS_COLORS[i.status]}`}
+                      style={{ textAlignLast: "center" }}
+                    >
+                      <option value="UNPAID">ค้างชำระ</option>
+                      <option value="PAID">ชำระแล้ว</option>
+                      <option value="OVERDUE">เกินกำหนด</option>
+                      <option value="CANCELLED">ยกเลิก</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils/format";
@@ -42,14 +42,27 @@ interface Props {
 export default function DeliveriesClient({ invoices, counts, role, currentUserId }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [list, setList] = useState(invoices);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"PENDING" | "DELIVERED">("PENDING");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const isAdmin = role === "ADMIN";
 
+  useEffect(() => {
+    setList(invoices);
+  }, [invoices]);
+
+  const localCounts = useMemo(() => {
+    return {
+      total: list.length,
+      pending: list.filter((i) => i.deliveryStatus === "PENDING").length,
+      delivered: list.filter((i) => i.deliveryStatus === "DELIVERED").length,
+    };
+  }, [list]);
+
   const filtered = useMemo(() => {
-    return invoices.filter((i) => {
+    return list.filter((i) => {
       const matchesSearch =
         search === "" ||
         i.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -58,11 +71,17 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
       const matchesTab = i.deliveryStatus === activeTab;
       return matchesSearch && matchesTab;
     });
-  }, [invoices, search, activeTab]);
+  }, [list, search, activeTab]);
 
-  const handleToggleDeliveryStatus = async (id: string, currentStatus: "PENDING" | "DELIVERED") => {
-    const nextStatus = currentStatus === "PENDING" ? "DELIVERED" : "PENDING";
+  const handleToggleDeliveryStatus = async (id: string, nextStatus: "PENDING" | "DELIVERED") => {
     setUpdatingId(id);
+    const oldStatus = list.find((i) => i.id === id)?.deliveryStatus;
+    if (!oldStatus) return;
+
+    // Optimistic update
+    setList((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, deliveryStatus: nextStatus } : item))
+    );
 
     try {
       const res = await fetch(`/api/invoices/${id}`, {
@@ -73,16 +92,18 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
 
       if (!res.ok) {
         const errData = await res.json();
-        alert(errData.error || "เกิดข้อผิดพลาดในการอัปเดตสถานะจัดส่ง");
-        return;
+        throw new Error(errData.error || "เกิดข้อผิดพลาดในการอัปเดตสถานะจัดส่ง");
       }
 
       startTransition(() => {
         router.refresh();
       });
-    } catch (err) {
-      console.error(err);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } catch (err: any) {
+      alert(err.message || "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      // Rollback
+      setList((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, deliveryStatus: oldStatus } : item))
+      );
     } finally {
       setUpdatingId(null);
     }
@@ -93,9 +114,9 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
       {/* Stats Dashboard */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: "รายการจัดส่งทั้งหมด / Total Deliveries", value: counts.total, color: "text-gray-700", bg: "bg-white" },
-          { label: "ยังไม่ส่ง / Pending Shipment", value: counts.pending, color: "text-amber-600", bg: "bg-amber-50/50 border-amber-100" },
-          { label: "ส่งแล้ว / Delivered", value: counts.delivered, color: "text-green-600", bg: "bg-green-50/50 border-green-100" },
+          { label: "รายการจัดส่งทั้งหมด / Total Deliveries", value: localCounts.total, color: "text-gray-700", bg: "bg-white" },
+          { label: "ยังไม่ส่ง / Pending Shipment", value: localCounts.pending, color: "text-amber-600", bg: "bg-amber-50/50 border-amber-100" },
+          { label: "ส่งแล้ว / Delivered", value: localCounts.delivered, color: "text-green-600", bg: "bg-green-50/50 border-green-100" },
         ].map((stat) => (
           <div key={stat.label} className={`rounded-xl border border-gray-200 p-4 ${stat.bg} shadow-sm`}>
             <p className="text-xs text-gray-500 font-medium mb-1">{stat.label}</p>
@@ -114,7 +135,7 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           }`}
         >
-          ยังไม่ส่ง / Pending ({counts.pending})
+          ยังไม่ส่ง / Pending ({localCounts.pending})
         </button>
         <button
           onClick={() => setActiveTab("DELIVERED")}
@@ -124,7 +145,7 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           }`}
         >
-          ส่งแล้ว / Delivered ({counts.delivered})
+          ส่งแล้ว / Delivered ({localCounts.delivered})
         </button>
       </div>
 
@@ -145,7 +166,7 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">🚚</p>
             <p className="font-medium">
-              {invoices.length === 0 ? "ไม่มีรายการจัดส่งสินค้า" : "ไม่พบรายการจัดส่งที่ค้นหา"}
+              {list.length === 0 ? "ไม่มีรายการจัดส่งสินค้า" : "ไม่พบรายการจัดส่งที่ค้นหา"}
             </p>
           </div>
         ) : (
@@ -192,36 +213,43 @@ export default function DeliveriesClient({ invoices, counts, role, currentUserId
                     </td>
                     <td className="px-4 py-3 text-center text-gray-600">{i.createdBy.name}</td>
                     <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          i.deliveryStatus === "DELIVERED"
-                            ? "bg-green-100 text-green-800 border border-green-200"
-                            : "bg-amber-100 text-amber-800 border border-amber-200"
-                        }`}
-                      >
-                        {i.deliveryStatus === "DELIVERED" ? "ส่งแล้ว / Delivered" : "ยังไม่ส่ง / Pending"}
-                      </span>
+                      {/* ponytail: interactive delivery status dropdown */}
+                      {canEdit ? (
+                        <select
+                          disabled={isUpdating || isPending}
+                          value={i.deliveryStatus}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleToggleDeliveryStatus(i.id, e.target.value as "PENDING" | "DELIVERED");
+                          }}
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${
+                            i.deliveryStatus === "DELIVERED"
+                              ? "bg-green-100 text-green-800 border border-green-200"
+                              : "bg-amber-100 text-amber-800 border border-amber-200"
+                          }`}
+                          style={{ textAlignLast: "center" }}
+                        >
+                          <option value="PENDING">ยังไม่ส่ง</option>
+                          <option value="DELIVERED">ส่งแล้ว</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            i.deliveryStatus === "DELIVERED"
+                              ? "bg-green-100 text-green-800 border border-green-200"
+                              : "bg-amber-100 text-amber-800 border border-amber-200"
+                          }`}
+                        >
+                          {i.deliveryStatus === "DELIVERED" ? "ส่งแล้ว" : "ยังไม่ส่ง"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {canEdit ? (
-                        <button
-                          disabled={isUpdating || isPending}
-                          onClick={() => handleToggleDeliveryStatus(i.id, i.deliveryStatus)}
-                          className={`px-3 py-1 rounded-md text-xs font-semibold shadow-sm transition-all border cursor-pointer ${
-                            i.deliveryStatus === "PENDING"
-                              ? "bg-green-600 text-white hover:bg-green-700 border-green-700 active:bg-green-800"
-                              : "bg-white text-amber-700 hover:bg-amber-50 border-amber-200 active:bg-amber-100"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {isUpdating
-                            ? "กำลังอัปเดต..."
-                            : i.deliveryStatus === "PENDING"
-                            ? "✓ ส่งแล้ว"
-                            : "↺ ยกเลิกจัดส่ง"}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">อ่านอย่างเดียว</span>
-                      )}
+                      <div className="flex items-center justify-center gap-2">
+                        <Link href={`/invoices/${i.id}`} className="text-xs text-blue-600 hover:underline">ดู</Link>
+                        <a href={`/api/invoices/${i.id}/pdf`} target="_blank" className="text-xs text-green-600 hover:underline">PDF</a>
+                      </div>
                     </td>
                   </tr>
                 );

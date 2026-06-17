@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { clearCompanyCache } from "@/lib/company-cache";
 
 export async function GET() {
   const session = await auth();
@@ -32,9 +33,11 @@ export async function PUT(req: NextRequest) {
         termsText: body.termsText,
       },
     });
+    clearCompanyCache();
     return NextResponse.json(updated);
   }
 
   const created = await prisma.company.create({ data: body });
+  clearCompanyCache();
   return NextResponse.json(created);
 }

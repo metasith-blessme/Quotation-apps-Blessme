@@ -8,25 +8,11 @@ export default async function ReceiptsPage() {
 
   const whereOwn = !isAdmin ? { createdById: session?.user?.id } : {};
 
-  const [statusCounts, receipts] = await Promise.all([
-    prisma.receipt.groupBy({
-      by: ["status"],
-      where: whereOwn,
-      _count: true,
-    }),
-    prisma.receipt.findMany({
-      where: whereOwn,
-      include: { createdBy: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-
-  const counts = {
-    total: statusCounts.reduce((sum, item) => sum + item._count, 0),
-    waiting: statusCounts.find((item) => item.status === "WAITING")?._count ?? 0,
-    issued: statusCounts.find((item) => item.status === "ISSUED")?._count ?? 0,
-    cancelled: statusCounts.find((item) => item.status === "CANCELLED")?._count ?? 0,
-  };
+  const receipts = await prisma.receipt.findMany({
+    where: whereOwn,
+    include: { createdBy: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -38,8 +24,8 @@ export default async function ReceiptsPage() {
       </div>
 
       <ReceiptsClient
+        key={receipts.map((item) => item.id + item.updatedAt).join("-")}
         receipts={JSON.parse(JSON.stringify(receipts))}
-        counts={counts}
       />
     </div>
   );

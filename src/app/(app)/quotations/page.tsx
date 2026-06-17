@@ -9,25 +9,11 @@ export default async function QuotationsPage() {
 
   const whereOwn = isAdmin ? {} : { createdById: session!.user.id };
 
-  const [statusCounts, quotations] = await Promise.all([
-    prisma.quotation.groupBy({
-      by: ["status"],
-      where: whereOwn,
-      _count: true,
-    }),
-    prisma.quotation.findMany({
-      where: whereOwn,
-      orderBy: { createdAt: "desc" },
-      include: { createdBy: { select: { name: true } } },
-    }),
-  ]);
-
-  const counts = {
-    total: statusCounts.reduce((sum, item) => sum + item._count, 0),
-    draft: statusCounts.find((item) => item.status === "DRAFT")?._count ?? 0,
-    sent: statusCounts.find((item) => item.status === "SENT")?._count ?? 0,
-    accepted: statusCounts.find((item) => item.status === "ACCEPTED")?._count ?? 0,
-  };
+  const quotations = await prisma.quotation.findMany({
+    where: whereOwn,
+    orderBy: { createdAt: "desc" },
+    include: { createdBy: { select: { name: true } } },
+  });
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -40,7 +26,10 @@ export default async function QuotationsPage() {
           + สร้างใบเสนอราคา
         </Link>
       </div>
-      <DashboardClient quotations={JSON.parse(JSON.stringify(quotations))} counts={counts} />
+      <DashboardClient
+        key={quotations.map((item) => item.id + item.updatedAt).join("-")}
+        quotations={JSON.parse(JSON.stringify(quotations))}
+      />
     </div>
   );
 }

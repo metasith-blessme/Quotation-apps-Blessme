@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
@@ -33,15 +33,19 @@ interface Quotation {
 
 interface Props {
   quotations: Quotation[];
-  counts: { total: number; draft: number; sent: number; accepted: number };
 }
 
-export default function DashboardClient({ quotations, counts }: Props) {
+export default function DashboardClient({ quotations }: Props) {
+  const [list, setList] = useState(quotations);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  useEffect(() => {
+    setList(quotations);
+  }, [quotations]);
+
   const filtered = useMemo(() => {
-    return quotations.filter((q) => {
+    return list.filter((q) => {
       const matchesSearch =
         search === "" ||
         q.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,17 +53,26 @@ export default function DashboardClient({ quotations, counts }: Props) {
       const matchesStatus = statusFilter === "ALL" || q.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [quotations, search, statusFilter]);
+  }, [list, search, statusFilter]);
+
+  const localCounts = useMemo(() => {
+    return {
+      total: list.length,
+      draft: list.filter((q) => q.status === "DRAFT").length,
+      sent: list.filter((q) => q.status === "SENT").length,
+      accepted: list.filter((q) => q.status === "ACCEPTED").length,
+    };
+  }, [list]);
 
   return (
     <>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "ทั้งหมด", value: counts.total, color: "text-gray-700" },
-          { label: "ร่าง", value: counts.draft, color: "text-gray-500" },
-          { label: "ส่งแล้ว", value: counts.sent, color: "text-blue-600" },
-          { label: "อนุมัติ", value: counts.accepted, color: "text-green-600" },
+          { label: "ทั้งหมด", value: localCounts.total, color: "text-gray-700" },
+          { label: "ร่าง", value: localCounts.draft, color: "text-gray-500" },
+          { label: "ส่งแล้ว", value: localCounts.sent, color: "text-blue-600" },
+          { label: "อนุมัติ", value: localCounts.accepted, color: "text-green-600" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
@@ -97,9 +110,9 @@ export default function DashboardClient({ quotations, counts }: Props) {
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">📄</p>
             <p className="font-medium">
-              {quotations.length === 0 ? "ยังไม่มีใบเสนอราคา" : "ไม่พบใบเสนอราคาที่ค้นหา"}
+              {list.length === 0 ? "ยังไม่มีใบเสนอราคา" : "ไม่พบใบเสนอราคาที่ค้นหา"}
             </p>
-            {quotations.length === 0 && (
+            {list.length === 0 && (
               <p className="text-sm mt-1">กดปุ่ม &quot;สร้างใบเสนอราคา&quot; เพื่อเริ่มต้น</p>
             )}
           </div>
@@ -127,9 +140,45 @@ export default function DashboardClient({ quotations, counts }: Props) {
                     ฿{formatCurrency(q.grandTotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[q.status]}`}>
-                      {STATUS_LABELS[q.status]}
-                    </span>
+                    {/* ponytail: inline select toggle for instant status change */}
+                    <select
+                      value={q.status}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={async (e) => {
+                        e.stopPropagation();
+                        const newStatus = e.target.value;
+                        const oldStatus = q.status;
+
+                        setList((prev) =>
+                          prev.map((item) => (item.id === q.id ? { ...item, status: newStatus } : item))
+                        );
+
+                        try {
+                          const res = await fetch(`/api/quotations/${q.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus }),
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json();
+                            throw new Error(errData.error || "เปลี่ยนสถานะไม่สำเร็จ");
+                          }
+                        } catch (err: any) {
+                          alert(err.message);
+                          setList((prev) =>
+                            prev.map((item) => (item.id === q.id ? { ...item, status: oldStatus } : item))
+                          );
+                        }
+                      }}
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${STATUS_COLORS[q.status]}`}
+                      style={{ textAlignLast: "center" }}
+                    >
+                      <option value="DRAFT">ร่าง</option>
+                      <option value="SENT">ส่งแล้ว</option>
+                      <option value="ACCEPTED">อนุมัติ</option>
+                      <option value="REJECTED">ปฏิเสธ</option>
+                      <option value="EXPIRED">หมดอายุ</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">

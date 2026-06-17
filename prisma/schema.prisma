@@ -155,6 +155,9 @@ model QuotationItem {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([quotationId])
+  @@index([productId])
 }
 
 // ─── INV Numbering sequence ────────────────────────────────
@@ -226,6 +229,9 @@ model InvoiceItem {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([productId])
 }
 
 // ─── BN Numbering sequence ────────────────────────────────
@@ -301,6 +307,9 @@ model BillingItem {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([billingId])
+  @@index([productId])
 }
 
 // ─── Receipt ───────────────────────────────────────────────
@@ -365,4 +374,7 @@ model ReceiptItem {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([receiptId])
+  @@index([productId])
 }

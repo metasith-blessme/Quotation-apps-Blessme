@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
@@ -30,15 +30,19 @@ interface Billing {
 
 interface Props {
   billings: Billing[];
-  counts: { total: number; pending: number; collected: number; cancelled: number };
 }
 
-export default function BillingsClient({ billings, counts }: Props) {
+export default function BillingsClient({ billings }: Props) {
+  const [list, setList] = useState(billings);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  useEffect(() => {
+    setList(billings);
+  }, [billings]);
+
   const filtered = useMemo(() => {
-    return billings.filter((b) => {
+    return list.filter((b) => {
       const matchesSearch =
         search === "" ||
         b.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -47,17 +51,26 @@ export default function BillingsClient({ billings, counts }: Props) {
       const matchesStatus = statusFilter === "ALL" || b.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [billings, search, statusFilter]);
+  }, [list, search, statusFilter]);
+
+  const localCounts = useMemo(() => {
+    return {
+      total: list.length,
+      pending: list.filter((b) => b.status === "PENDING").length,
+      collected: list.filter((b) => b.status === "COLLECTED").length,
+      cancelled: list.filter((b) => b.status === "CANCELLED").length,
+    };
+  }, [list]);
 
   return (
     <>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "ทั้งหมด", value: counts.total, color: "text-gray-700" },
-          { label: "รอเก็บเงิน", value: counts.pending, color: "text-blue-600" },
-          { label: "เก็บเงินแล้ว", value: counts.collected, color: "text-green-600" },
-          { label: "ยกเลิก", value: counts.cancelled, color: "text-gray-500" },
+          { label: "ทั้งหมด", value: localCounts.total, color: "text-gray-700" },
+          { label: "รอเก็บเงิน", value: localCounts.pending, color: "text-blue-600" },
+          { label: "เก็บเงินแล้ว", value: localCounts.collected, color: "text-green-600" },
+          { label: "ยกเลิก", value: localCounts.cancelled, color: "text-gray-500" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
@@ -93,9 +106,9 @@ export default function BillingsClient({ billings, counts }: Props) {
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">📄</p>
             <p className="font-medium">
-              {billings.length === 0 ? "ยังไม่มีใบวางบิล" : "ไม่พบใบวางบิลที่ค้นหา"}
+              {list.length === 0 ? "ยังไม่มีใบวางบิล" : "ไม่พบใบวางบิลที่ค้นหา"}
             </p>
-            {billings.length === 0 && (
+            {list.length === 0 && (
               <p className="text-sm mt-1">ออกใบวางบิลจากหน้า &quot;ใบแจ้งหนี้&quot;</p>
             )}
           </div>
@@ -125,9 +138,43 @@ export default function BillingsClient({ billings, counts }: Props) {
                     ฿{formatCurrency(b.grandTotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[b.status]}`}>
-                      {STATUS_LABELS[b.status]}
-                    </span>
+                    {/* ponytail: inline select toggle for instant status change */}
+                    <select
+                      value={b.status}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={async (e) => {
+                        e.stopPropagation();
+                        const newStatus = e.target.value;
+                        const oldStatus = b.status;
+
+                        setList((prev) =>
+                          prev.map((item) => (item.id === b.id ? { ...item, status: newStatus } : item))
+                        );
+
+                        try {
+                          const res = await fetch(`/api/billings/${b.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus }),
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json();
+                            throw new Error(errData.error || "เปลี่ยนสถานะไม่สำเร็จ");
+                          }
+                        } catch (err: any) {
+                          alert(err.message);
+                          setList((prev) =>
+                            prev.map((item) => (item.id === b.id ? { ...item, status: oldStatus } : item))
+                          );
+                        }
+                      }}
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${STATUS_COLORS[b.status]}`}
+                      style={{ textAlignLast: "center" }}
+                    >
+                      <option value="PENDING">รอเก็บเงิน</option>
+                      <option value="COLLECTED">เก็บแล้ว</option>
+                      <option value="CANCELLED">ยกเลิก</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">

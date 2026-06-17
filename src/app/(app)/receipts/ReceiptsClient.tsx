@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
@@ -30,15 +30,19 @@ interface Receipt {
 
 interface Props {
   receipts: Receipt[];
-  counts: { total: number; waiting: number; issued: number; cancelled: number };
 }
 
-export default function ReceiptsClient({ receipts, counts }: Props) {
+export default function ReceiptsClient({ receipts }: Props) {
+  const [list, setList] = useState(receipts);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  useEffect(() => {
+    setList(receipts);
+  }, [receipts]);
+
   const filtered = useMemo(() => {
-    return receipts.filter((r) => {
+    return list.filter((r) => {
       const matchesSearch =
         search === "" ||
         r.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,17 +52,26 @@ export default function ReceiptsClient({ receipts, counts }: Props) {
       const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [receipts, search, statusFilter]);
+  }, [list, search, statusFilter]);
+
+  const localCounts = useMemo(() => {
+    return {
+      total: list.length,
+      waiting: list.filter((r) => r.status === "WAITING").length,
+      issued: list.filter((r) => r.status === "ISSUED").length,
+      cancelled: list.filter((r) => r.status === "CANCELLED").length,
+    };
+  }, [list]);
 
   return (
     <>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "ทั้งหมด", value: counts.total, color: "text-gray-700" },
-          { label: "รอการออก", value: counts.waiting, color: "text-orange-600" },
-          { label: "ออกใบเสร็จแล้ว", value: counts.issued, color: "text-green-600" },
-          { label: "ยกเลิก", value: counts.cancelled, color: "text-gray-500" },
+          { label: "ทั้งหมด", value: localCounts.total, color: "text-gray-700" },
+          { label: "รอการออก", value: localCounts.waiting, color: "text-orange-600" },
+          { label: "ออกใบเสร็จแล้ว", value: localCounts.issued, color: "text-green-600" },
+          { label: "ยกเลิก", value: localCounts.cancelled, color: "text-gray-500" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
@@ -94,9 +107,9 @@ export default function ReceiptsClient({ receipts, counts }: Props) {
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">🧾</p>
             <p className="font-medium">
-              {receipts.length === 0 ? "ยังไม่มีใบเสร็จรับเงิน" : "ไม่พบใบเสร็จรับเงินที่ค้นหา"}
+              {list.length === 0 ? "ยังไม่มีใบเสร็จรับเงิน" : "ไม่พบใบเสร็จรับเงินที่ค้นหา"}
             </p>
-            {receipts.length === 0 && (
+            {list.length === 0 && (
               <p className="text-sm mt-1">ออกใบเสร็จรับเงินจากหน้า &quot;ใบแจ้งหนี้&quot; หรือ &quot;ใบวางบิล&quot;</p>
             )}
           </div>
@@ -126,9 +139,43 @@ export default function ReceiptsClient({ receipts, counts }: Props) {
                     ฿{formatCurrency(r.grandTotal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[r.status]}`}>
-                      {STATUS_LABELS[r.status]}
-                    </span>
+                    {/* ponytail: inline select toggle for instant status change */}
+                    <select
+                      value={r.status}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={async (e) => {
+                        e.stopPropagation();
+                        const newStatus = e.target.value;
+                        const oldStatus = r.status;
+
+                        setList((prev) =>
+                          prev.map((item) => (item.id === r.id ? { ...item, status: newStatus } : item))
+                        );
+
+                        try {
+                          const res = await fetch(`/api/receipts/${r.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus }),
+                          });
+                          if (!res.ok) {
+                            const errData = await res.text();
+                            throw new Error(errData || "เปลี่ยนสถานะไม่สำเร็จ");
+                          }
+                        } catch (err: any) {
+                          alert(err.message);
+                          setList((prev) =>
+                            prev.map((item) => (item.id === r.id ? { ...item, status: oldStatus } : item))
+                          );
+                        }
+                      }}
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-center ${STATUS_COLORS[r.status]}`}
+                      style={{ textAlignLast: "center" }}
+                    >
+                      <option value="WAITING">รอออก</option>
+                      <option value="ISSUED">ออกแล้ว</option>
+                      <option value="CANCELLED">ยกเลิก</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">

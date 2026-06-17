@@ -382,24 +382,39 @@ export async function convertBillingToReceipt(
 export async function syncInvoiceFromQuotation(quotationId: string): Promise<void> {
   console.log(`[SYNC] syncInvoiceFromQuotation called with quotationId: ${quotationId}`);
   
-  const quotation = await prisma.quotation.findUnique({
-    where: { id: quotationId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
+  const [quotation, invoice] = await Promise.all([
+    prisma.quotation.findUnique({
+      where: { id: quotationId },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+    }),
+    prisma.invoice.findFirst({
+      where: { quotationId },
+    }),
+  ]);
+
   if (!quotation) {
     console.log(`[SYNC] Quotation not found for id: ${quotationId}`);
     return;
   }
-  console.log(`[SYNC] Found quotation ${quotation.qtNumber} with ${quotation.items.length} items`);
-
-  const invoice = await prisma.invoice.findFirst({
-    where: { quotationId: quotationId },
-  });
   if (!invoice) {
     console.log(`[SYNC] No linked invoice found for quotationId: ${quotationId}`);
     return;
   }
-  console.log(`[SYNC] Found linked invoice ${invoice.invNumber} (id: ${invoice.id})`);
+
+  // Fetch billing and receipt in parallel using invoice.id
+  const [billing, receipt] = await Promise.all([
+    prisma.billing.findFirst({
+      where: { invoiceId: invoice.id },
+    }),
+    prisma.receipt.findFirst({
+      where: {
+        OR: [
+          { invoiceId: invoice.id },
+          { billing: { invoiceId: invoice.id } }
+        ]
+      },
+    }),
+  ]);
 
   const { subtotal, vatAmount, grandTotal, items: computedItems } = calculateTotals(
     quotation.items.map((item) => ({
@@ -413,47 +428,115 @@ export async function syncInvoiceFromQuotation(quotationId: string): Promise<voi
     })),
     quotation.vatRate
   );
-  console.log(`[SYNC] Calculated totals: subtotal=${subtotal}, vat=${vatAmount}, grand=${grandTotal}, items=${computedItems.length}`);
 
-  // Delete old invoice items and recreate from quotation
-  const deleted = await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } });
-  console.log(`[SYNC] Deleted ${deleted.count} old invoice items`);
-
-  await prisma.invoice.update({
-    where: { id: invoice.id },
-    data: {
-      customerName: quotation.customerName,
-      customerAddress: quotation.customerAddress,
-      customerTaxId: quotation.customerTaxId,
-      customerPhone: quotation.customerPhone,
-      customerEmail: quotation.customerEmail,
-      customerContact: quotation.customerContact,
-      vatRate: quotation.vatRate,
-      subtotal,
-      vatAmount,
-      grandTotal,
-      currency: quotation.currency,
-      notes: quotation.notes,
-      termsSnapshot: quotation.termsSnapshot,
-      items: {
-        create: computedItems.map((item) => ({
-          productId: item.productId,
-          productNameTh: item.productNameTh,
-          productNameEn: item.productNameEn,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder,
-        })),
+  const writeOps: any[] = [
+    prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } }),
+    prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        customerName: quotation.customerName,
+        customerAddress: quotation.customerAddress,
+        customerTaxId: quotation.customerTaxId,
+        customerPhone: quotation.customerPhone,
+        customerEmail: quotation.customerEmail,
+        customerContact: quotation.customerContact,
+        vatRate: quotation.vatRate,
+        subtotal,
+        vatAmount,
+        grandTotal,
+        currency: quotation.currency,
+        notes: quotation.notes,
+        termsSnapshot: quotation.termsSnapshot,
+        items: {
+          create: computedItems.map((item) => ({
+            productId: item.productId,
+            productNameTh: item.productNameTh,
+            productNameEn: item.productNameEn,
+            unit: item.unit,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            sortOrder: item.sortOrder,
+          })),
+        },
       },
-    },
-  });
-  console.log(`[SYNC] Invoice ${invoice.invNumber} updated successfully`);
+    })
+  ];
 
-  // Cascade further: Invoice → Billing → Receipt
-  await syncBillingFromInvoice(invoice.id);
-  await syncReceiptsFromInvoice(invoice.id);
+  if (billing) {
+    writeOps.push(
+      prisma.billingItem.deleteMany({ where: { billingId: billing.id } }),
+      prisma.billing.update({
+        where: { id: billing.id },
+        data: {
+          customerName: quotation.customerName,
+          customerAddress: quotation.customerAddress,
+          customerTaxId: quotation.customerTaxId,
+          customerPhone: quotation.customerPhone,
+          customerEmail: quotation.customerEmail,
+          customerContact: quotation.customerContact,
+          vatRate: quotation.vatRate,
+          subtotal,
+          vatAmount,
+          grandTotal,
+          currency: quotation.currency,
+          notes: quotation.notes,
+          termsSnapshot: quotation.termsSnapshot,
+          items: {
+            create: computedItems.map((item) => ({
+              productId: item.productId,
+              productNameTh: item.productNameTh,
+              productNameEn: item.productNameEn,
+              unit: item.unit,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.lineTotal,
+              sortOrder: item.sortOrder,
+            })),
+          },
+        },
+      })
+    );
+  }
+
+  if (receipt) {
+    writeOps.push(
+      prisma.receiptItem.deleteMany({ where: { receiptId: receipt.id } }),
+      prisma.receipt.update({
+        where: { id: receipt.id },
+        data: {
+          customerName: quotation.customerName,
+          customerAddress: quotation.customerAddress,
+          customerTaxId: quotation.customerTaxId,
+          customerPhone: quotation.customerPhone,
+          customerEmail: quotation.customerEmail,
+          customerContact: quotation.customerContact,
+          vatRate: quotation.vatRate,
+          subtotal,
+          vatAmount,
+          grandTotal,
+          currency: quotation.currency,
+          notes: quotation.notes,
+          termsSnapshot: quotation.termsSnapshot,
+          items: {
+            create: computedItems.map((item) => ({
+              productId: item.productId,
+              productNameTh: item.productNameTh,
+              productNameEn: item.productNameEn,
+              unit: item.unit,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.lineTotal,
+              sortOrder: item.sortOrder,
+            })),
+          },
+        },
+      })
+    );
+  }
+
+  await prisma.$transaction(writeOps);
+  console.log(`[SYNC] Invoice ${invoice.invNumber} and downstream docs synced successfully`);
 }
 
 /**
@@ -461,16 +544,20 @@ export async function syncInvoiceFromQuotation(quotationId: string): Promise<voi
  * Then cascades to any Receipt linked to the Billing.
  */
 export async function syncBillingFromInvoice(invoiceId: string): Promise<void> {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!invoice) return;
+  const [invoice, billing, receipt] = await Promise.all([
+    prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+    }),
+    prisma.billing.findFirst({
+      where: { invoiceId },
+    }),
+    prisma.receipt.findFirst({
+      where: { billing: { invoiceId } },
+    }),
+  ]);
 
-  const billing = await prisma.billing.findFirst({
-    where: { invoiceId },
-  });
-  if (!billing) return; // Not yet converted
+  if (!invoice || !billing) return;
 
   const { subtotal, vatAmount, grandTotal, items: computedItems } = calculateTotals(
     invoice.items.map((item) => ({
@@ -485,57 +572,94 @@ export async function syncBillingFromInvoice(invoiceId: string): Promise<void> {
     invoice.vatRate
   );
 
-  await prisma.billingItem.deleteMany({ where: { billingId: billing.id } });
-
-  await prisma.billing.update({
-    where: { id: billing.id },
-    data: {
-      customerName: invoice.customerName,
-      customerAddress: invoice.customerAddress,
-      customerTaxId: invoice.customerTaxId,
-      customerPhone: invoice.customerPhone,
-      customerEmail: invoice.customerEmail,
-      customerContact: invoice.customerContact,
-      vatRate: invoice.vatRate,
-      subtotal,
-      vatAmount,
-      grandTotal,
-      currency: invoice.currency,
-      notes: invoice.notes,
-      termsSnapshot: invoice.termsSnapshot,
-      items: {
-        create: computedItems.map((item) => ({
-          productId: item.productId,
-          productNameTh: item.productNameTh,
-          productNameEn: item.productNameEn,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder,
-        })),
+  const writeOps: any[] = [
+    prisma.billingItem.deleteMany({ where: { billingId: billing.id } }),
+    prisma.billing.update({
+      where: { id: billing.id },
+      data: {
+        customerName: invoice.customerName,
+        customerAddress: invoice.customerAddress,
+        customerTaxId: invoice.customerTaxId,
+        customerPhone: invoice.customerPhone,
+        customerEmail: invoice.customerEmail,
+        customerContact: invoice.customerContact,
+        vatRate: invoice.vatRate,
+        subtotal,
+        vatAmount,
+        grandTotal,
+        currency: invoice.currency,
+        notes: invoice.notes,
+        termsSnapshot: invoice.termsSnapshot,
+        items: {
+          create: computedItems.map((item) => ({
+            productId: item.productId,
+            productNameTh: item.productNameTh,
+            productNameEn: item.productNameEn,
+            unit: item.unit,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            sortOrder: item.sortOrder,
+          })),
+        },
       },
-    },
-  });
+    })
+  ];
 
-  // Cascade: Billing → Receipt
-  await syncReceiptsFromBilling(billing.id);
+  if (receipt) {
+    writeOps.push(
+      prisma.receiptItem.deleteMany({ where: { receiptId: receipt.id } }),
+      prisma.receipt.update({
+        where: { id: receipt.id },
+        data: {
+          customerName: invoice.customerName,
+          customerAddress: invoice.customerAddress,
+          customerTaxId: invoice.customerTaxId,
+          customerPhone: invoice.customerPhone,
+          customerEmail: invoice.customerEmail,
+          customerContact: invoice.customerContact,
+          vatRate: invoice.vatRate,
+          subtotal,
+          vatAmount,
+          grandTotal,
+          currency: invoice.currency,
+          notes: invoice.notes,
+          termsSnapshot: invoice.termsSnapshot,
+          items: {
+            create: computedItems.map((item) => ({
+              productId: item.productId,
+              productNameTh: item.productNameTh,
+              productNameEn: item.productNameEn,
+              unit: item.unit,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.lineTotal,
+              sortOrder: item.sortOrder,
+            })),
+          },
+        },
+      })
+    );
+  }
+
+  await prisma.$transaction(writeOps);
 }
 
 /**
  * Syncs Receipts linked directly to an Invoice (not via Billing).
  */
 export async function syncReceiptsFromInvoice(invoiceId: string): Promise<void> {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!invoice) return;
+  const [invoice, receipt] = await Promise.all([
+    prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+    }),
+    prisma.receipt.findFirst({
+      where: { invoiceId, billingId: null },
+    }),
+  ]);
 
-  const receipt = await prisma.receipt.findFirst({
-    where: { invoiceId, billingId: null },
-  });
-  if (!receipt) return;
+  if (!invoice || !receipt) return;
 
   const { subtotal, vatAmount, grandTotal, items: computedItems } = calculateTotals(
     invoice.items.map((item) => ({
@@ -550,54 +674,56 @@ export async function syncReceiptsFromInvoice(invoiceId: string): Promise<void> 
     invoice.vatRate
   );
 
-  await prisma.receiptItem.deleteMany({ where: { receiptId: receipt.id } });
-
-  await prisma.receipt.update({
-    where: { id: receipt.id },
-    data: {
-      customerName: invoice.customerName,
-      customerAddress: invoice.customerAddress,
-      customerTaxId: invoice.customerTaxId,
-      customerPhone: invoice.customerPhone,
-      customerEmail: invoice.customerEmail,
-      customerContact: invoice.customerContact,
-      vatRate: invoice.vatRate,
-      subtotal,
-      vatAmount,
-      grandTotal,
-      currency: invoice.currency,
-      notes: invoice.notes,
-      termsSnapshot: invoice.termsSnapshot,
-      items: {
-        create: computedItems.map((item) => ({
-          productId: item.productId,
-          productNameTh: item.productNameTh,
-          productNameEn: item.productNameEn,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder,
-        })),
+  await prisma.$transaction([
+    prisma.receiptItem.deleteMany({ where: { receiptId: receipt.id } }),
+    prisma.receipt.update({
+      where: { id: receipt.id },
+      data: {
+        customerName: invoice.customerName,
+        customerAddress: invoice.customerAddress,
+        customerTaxId: invoice.customerTaxId,
+        customerPhone: invoice.customerPhone,
+        customerEmail: invoice.customerEmail,
+        customerContact: invoice.customerContact,
+        vatRate: invoice.vatRate,
+        subtotal,
+        vatAmount,
+        grandTotal,
+        currency: invoice.currency,
+        notes: invoice.notes,
+        termsSnapshot: invoice.termsSnapshot,
+        items: {
+          create: computedItems.map((item) => ({
+            productId: item.productId,
+            productNameTh: item.productNameTh,
+            productNameEn: item.productNameEn,
+            unit: item.unit,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            sortOrder: item.sortOrder,
+          })),
+        },
       },
-    },
-  });
+    }),
+  ]);
 }
 
 /**
  * Syncs Receipts linked to a Billing Note.
  */
 export async function syncReceiptsFromBilling(billingId: string): Promise<void> {
-  const billing = await prisma.billing.findUnique({
-    where: { id: billingId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!billing) return;
+  const [billing, receipt] = await Promise.all([
+    prisma.billing.findUnique({
+      where: { id: billingId },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+    }),
+    prisma.receipt.findFirst({
+      where: { billingId },
+    }),
+  ]);
 
-  const receipt = await prisma.receipt.findFirst({
-    where: { billingId },
-  });
-  if (!receipt) return;
+  if (!billing || !receipt) return;
 
   const { subtotal, vatAmount, grandTotal, items: computedItems } = calculateTotals(
     billing.items.map((item) => ({
@@ -612,36 +738,37 @@ export async function syncReceiptsFromBilling(billingId: string): Promise<void> 
     billing.vatRate
   );
 
-  await prisma.receiptItem.deleteMany({ where: { receiptId: receipt.id } });
-
-  await prisma.receipt.update({
-    where: { id: receipt.id },
-    data: {
-      customerName: billing.customerName,
-      customerAddress: billing.customerAddress,
-      customerTaxId: billing.customerTaxId,
-      customerPhone: billing.customerPhone,
-      customerEmail: billing.customerEmail,
-      customerContact: billing.customerContact,
-      vatRate: billing.vatRate,
-      subtotal,
-      vatAmount,
-      grandTotal,
-      currency: billing.currency,
-      notes: billing.notes,
-      termsSnapshot: billing.termsSnapshot,
-      items: {
-        create: computedItems.map((item) => ({
-          productId: item.productId,
-          productNameTh: item.productNameTh,
-          productNameEn: item.productNameEn,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder,
-        })),
+  await prisma.$transaction([
+    prisma.receiptItem.deleteMany({ where: { receiptId: receipt.id } }),
+    prisma.receipt.update({
+      where: { id: receipt.id },
+      data: {
+        customerName: billing.customerName,
+        customerAddress: billing.customerAddress,
+        customerTaxId: billing.customerTaxId,
+        customerPhone: billing.customerPhone,
+        customerEmail: billing.customerEmail,
+        customerContact: billing.customerContact,
+        vatRate: billing.vatRate,
+        subtotal,
+        vatAmount,
+        grandTotal,
+        currency: billing.currency,
+        notes: billing.notes,
+        termsSnapshot: billing.termsSnapshot,
+        items: {
+          create: computedItems.map((item) => ({
+            productId: item.productId,
+            productNameTh: item.productNameTh,
+            productNameEn: item.productNameEn,
+            unit: item.unit,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            sortOrder: item.sortOrder,
+          })),
+        },
       },
-    },
-  });
+    }),
+  ]);
 }
