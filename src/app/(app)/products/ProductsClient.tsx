@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils/format";
+import { isBobaProduct as checkBoba } from "@/lib/utils/isBobaProduct";
 
 interface ProductTier {
   id?: string;
@@ -71,13 +72,7 @@ export default function ProductsClient({
   const isAdmin = userRole === "ADMIN";
 
   // ─── Boba detection ──────────────────────────────────────
-  const isBobaProduct =
-    form.nameEn?.toLowerCase().includes("popping boba") ||
-    form.nameEn?.toLowerCase().includes("popping") ||
-    form.nameEn?.toLowerCase().includes("boba") ||
-    form.nameTh?.toLowerCase().includes("popping boba") ||
-    form.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
-    form.nameTh?.toLowerCase().includes("บ๊อบบ้า");
+  const isBobaProduct = checkBoba(form);
 
   const calculatedTotalStock = isBobaProduct
     ? (form.pastedBoxes ?? 0) * 24 +
@@ -850,13 +845,7 @@ export default function ProductsClient({
               <tbody className="divide-y divide-gray-100 bg-white">
                 {sortedProducts.map((p) => {
                   const isLowStock = p.stockQuantity <= p.lowStockThreshold;
-                  const isBoba =
-                    p.nameEn?.toLowerCase().includes("popping boba") ||
-                    p.nameEn?.toLowerCase().includes("popping") ||
-                    p.nameEn?.toLowerCase().includes("boba") ||
-                    p.nameTh?.toLowerCase().includes("popping boba") ||
-                    p.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
-                    p.nameTh?.toLowerCase().includes("บ๊อบบ้า");
+                  const isBoba = checkBoba(p);
 
                   return (
                     <tr key={p.id} className={`${isLowStock ? "bg-red-50/30" : "hover:bg-gray-50/30"} transition-colors`}>

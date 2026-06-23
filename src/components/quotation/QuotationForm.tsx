@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateInput, addDays, formatCurrency } from "@/lib/utils/format";
+import { isBobaProduct } from "@/lib/utils/isBobaProduct";
 import ClientPicker from "@/components/quotation/ClientPicker";
 import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 
@@ -497,12 +498,7 @@ export default function QuotationForm({
                     {(() => {
                       const product = products.find((p) => p.id === item.productId);
                       const isBoba = product && (
-                        product.nameEn?.toLowerCase().includes("popping boba") ||
-                        product.nameEn?.toLowerCase().includes("popping") ||
-                        product.nameEn?.toLowerCase().includes("boba") ||
-                        product.nameTh?.toLowerCase().includes("popping boba") ||
-                        product.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
-                        product.nameTh?.toLowerCase().includes("บ๊อบบ้า")
+                        isBobaProduct(product)
                       );
                       if (isBoba) {
                         return (

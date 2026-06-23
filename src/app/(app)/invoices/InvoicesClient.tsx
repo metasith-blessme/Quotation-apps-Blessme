@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { useStatusToggle } from "@/lib/hooks/useStatusToggle";
 
 const STATUS_LABELS: Record<string, string> = {
   UNPAID: "ค้างชำระ",
@@ -35,13 +36,9 @@ interface Props {
 }
 
 export default function InvoicesClient({ invoices }: Props) {
-  const [list, setList] = useState(invoices);
+  const { list, updateStatus, error } = useStatusToggle(invoices, (id) => `/api/invoices/${id}`, "PUT");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-
-  useEffect(() => {
-    setList(invoices);
-  }, [invoices]);
 
   const filtered = useMemo(() => {
     return list.filter((i) => {
@@ -66,6 +63,13 @@ export default function InvoicesClient({ invoices }: Props) {
 
   return (
     <>
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
@@ -146,32 +150,7 @@ export default function InvoicesClient({ invoices }: Props) {
                       <select
                         value={i.status}
                         onClick={(e) => e.stopPropagation()}
-                        onChange={async (e) => {
-                          e.stopPropagation();
-                          const newStatus = e.target.value;
-                          const oldStatus = i.status;
-
-                          setList((prev) =>
-                            prev.map((item) => (item.id === i.id ? { ...item, status: newStatus } : item))
-                          );
-
-                          try {
-                            const res = await fetch(`/api/invoices/${i.id}`, {
-                              method: "PUT",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ status: newStatus }),
-                            });
-                            if (!res.ok) {
-                              const errData = await res.json();
-                              throw new Error(errData.error || "เปลี่ยนสถานะไม่สำเร็จ");
-                            }
-                          } catch (err: any) {
-                            alert(err.message);
-                            setList((prev) =>
-                              prev.map((item) => (item.id === i.id ? { ...item, status: oldStatus } : item))
-                            );
-                          }
-                        }}
+                        onChange={(e) => { e.stopPropagation(); updateStatus(i.id, e.target.value); }}
                         className={`inline-block pl-2.5 pr-6 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none text-left ${STATUS_COLORS[i.status]}`}
                         style={{ textAlignLast: "left" }}
                       >

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { productSchema } from "@/lib/validations/product.schema";
+import { isBobaProduct } from "@/lib/utils/isBobaProduct";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -20,12 +21,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   // Calculate stockQuantity server-side for boba products
   const isBoba =
-    productData.nameEn?.toLowerCase().includes("popping boba") ||
-    productData.nameEn?.toLowerCase().includes("popping") ||
-    productData.nameEn?.toLowerCase().includes("boba") ||
-    productData.nameTh?.toLowerCase().includes("popping boba") ||
-    productData.nameTh?.toLowerCase().includes("เม็ดป็อป") ||
-    productData.nameTh?.toLowerCase().includes("บ๊อบบ้า") ||
+    isBobaProduct(productData) ||
     !!(
       productData.pastedBoxes ||
       productData.pastedBags ||
