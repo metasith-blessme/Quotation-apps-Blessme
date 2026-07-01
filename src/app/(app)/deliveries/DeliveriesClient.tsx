@@ -39,7 +39,7 @@ interface Props {
   currentUserId?: string;
 }
 
-export default function DeliveriesClient({ invoices, counts, role, currentUserId }: Props) {
+export default function DeliveriesClient({ invoices, role, currentUserId }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [list, setList] = useState(invoices);

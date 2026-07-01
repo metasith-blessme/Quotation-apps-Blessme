@@ -5,13 +5,6 @@ import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { useStatusToggle } from "@/lib/hooks/useStatusToggle";
 
-const STATUS_LABELS: Record<string, string> = {
-  UNPAID: "ค้างชำระ",
-  PAID: "ชำระแล้ว",
-  OVERDUE: "เกินกำหนด",
-  CANCELLED: "ยกเลิก",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   UNPAID: "bg-orange-100 text-orange-700",
   PAID: "bg-green-100 text-green-700",

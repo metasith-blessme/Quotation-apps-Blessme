@@ -5,12 +5,6 @@ import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { useStatusToggle } from "@/lib/hooks/useStatusToggle";
 
-const STATUS_LABELS: Record<string, string> = {
-  WAITING: "รอการออก",
-  ISSUED: "ออกใบเสร็จแล้ว",
-  CANCELLED: "ยกเลิก",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   WAITING: "bg-orange-100 text-orange-700",
   ISSUED: "bg-green-100 text-green-700",

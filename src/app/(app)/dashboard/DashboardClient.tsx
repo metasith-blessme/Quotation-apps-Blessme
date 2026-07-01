@@ -4,14 +4,6 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "อนุมัติ",
-  REJECTED: "ปฏิเสธ",
-  EXPIRED: "หมดอายุ",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-600",
   SENT: "bg-blue-100 text-blue-700",

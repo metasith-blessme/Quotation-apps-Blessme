@@ -103,7 +103,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
   // Cascade: sync linked Invoice (and downstream Billing/Receipt) with updated data
   try {
     await syncInvoiceFromQuotation(id);
-    console.log(`[CASCADE] Successfully synced invoice from quotation ${id}`);
   } catch (cascadeError) {
     console.error(`[CASCADE ERROR] Failed to sync invoice from quotation ${id}:`, cascadeError);
   }

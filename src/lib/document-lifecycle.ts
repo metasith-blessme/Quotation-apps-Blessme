@@ -380,7 +380,6 @@ export async function convertBillingToReceipt(
  * Updates customer details, items, and totals. Then cascades to Billing/Receipt.
  */
 export async function syncInvoiceFromQuotation(quotationId: string): Promise<void> {
-  console.log(`[SYNC] syncInvoiceFromQuotation called with quotationId: ${quotationId}`);
   
   const [quotation, invoice] = await Promise.all([
     prisma.quotation.findUnique({
@@ -393,11 +392,9 @@ export async function syncInvoiceFromQuotation(quotationId: string): Promise<voi
   ]);
 
   if (!quotation) {
-    console.log(`[SYNC] Quotation not found for id: ${quotationId}`);
     return;
   }
   if (!invoice) {
-    console.log(`[SYNC] No linked invoice found for quotationId: ${quotationId}`);
     return;
   }
 
@@ -536,7 +533,6 @@ export async function syncInvoiceFromQuotation(quotationId: string): Promise<voi
   }
 
   await prisma.$transaction(writeOps);
-  console.log(`[SYNC] Invoice ${invoice.invNumber} and downstream docs synced successfully`);
 }
 
 /**

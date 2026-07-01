@@ -112,7 +112,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
   // Cascade: sync linked Receipt with updated data
   try {
     await syncReceiptsFromBilling(id);
-    console.log(`[CASCADE] Successfully synced receipt from billing ${id}`);
   } catch (cascadeError) {
     console.error(`[CASCADE ERROR] Failed to sync receipt from billing ${id}:`, cascadeError);
   }

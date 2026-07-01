@@ -121,7 +121,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
   try {
     await syncBillingFromInvoice(id);
     await syncReceiptsFromInvoice(id);
-    console.log(`[CASCADE] Successfully synced billing/receipt from invoice ${id}`);
   } catch (cascadeError) {
     console.error(`[CASCADE ERROR] Failed to sync from invoice ${id}:`, cascadeError);
   }
