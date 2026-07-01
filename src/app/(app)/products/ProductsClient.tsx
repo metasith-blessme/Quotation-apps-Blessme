@@ -20,6 +20,9 @@ interface Product {
   lowStockThreshold: number;
   isActive: boolean;
   tiers?: ProductTier[];
+  stockTiktok: number;
+  stockShopee: number;
+  stockLineOa: number;
   pastedBoxes: number;
   pastedBags: number;
   unpackedBoxes: number;
@@ -39,6 +42,9 @@ const emptyForm = {
   lowStockThreshold: 0,
   isActive: true,
   tiers: [] as ProductTier[],
+  stockTiktok: 0,
+  stockShopee: 0,
+  stockLineOa: 0,
   pastedBoxes: 0,
   pastedBags: 0,
   unpackedBoxes: 0,
@@ -168,6 +174,9 @@ export default function ProductsClient({
             lowStockThreshold: p.lowStockThreshold,
             isActive: p.isActive,
             tiers: p.tiers ?? [],
+            stockTiktok: p.stockTiktok ?? 0,
+            stockShopee: p.stockShopee ?? 0,
+            stockLineOa: p.stockLineOa ?? 0,
             pastedBoxes: p.pastedBoxes,
             pastedBags: p.pastedBags,
             unpackedBoxes: p.unpackedBoxes,
@@ -216,6 +225,9 @@ export default function ProductsClient({
       lowStockThreshold: p.lowStockThreshold,
       isActive: p.isActive,
       tiers: p.tiers ? [...p.tiers] : [],
+      stockTiktok: p.stockTiktok ?? 0,
+      stockShopee: p.stockShopee ?? 0,
+      stockLineOa: p.stockLineOa ?? 0,
       pastedBoxes: p.pastedBoxes ?? 0,
       pastedBags: p.pastedBags ?? 0,
       unpackedBoxes: p.unpackedBoxes ?? 0,
@@ -838,6 +850,10 @@ export default function ProductsClient({
                   <th className="text-center px-3 py-2.5 font-bold text-gray-700 text-xs w-20">หน่วย</th>
                   <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">ราคา/หน่วย</th>
                   <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">สต็อกรวม</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-24">TikTok</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-24">Shopee</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-24">LINE OA</th>
+                  <th className="text-right px-3 py-2.5 font-bold text-emerald-700 text-xs w-24">ช่องทางรวม</th>
                   <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">จุดเตือน</th>
                   <th className="text-center px-3 py-2.5 font-bold text-gray-700 text-xs w-20">Tiers</th>
                 </tr>
@@ -931,6 +947,37 @@ export default function ProductsClient({
                             />
                           </div>
                         )}
+                      </td>
+
+                      {/* TikTok */}
+                      <td className="px-3 py-2">
+                        <input type="number" min="0"
+                          value={p.stockTiktok ?? 0}
+                          onChange={(e) => handleGridChange(p.id, "stockTiktok", parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
+                      </td>
+
+                      {/* Shopee */}
+                      <td className="px-3 py-2">
+                        <input type="number" min="0"
+                          value={p.stockShopee ?? 0}
+                          onChange={(e) => handleGridChange(p.id, "stockShopee", parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
+                      </td>
+
+                      {/* LINE OA */}
+                      <td className="px-3 py-2">
+                        <input type="number" min="0"
+                          value={p.stockLineOa ?? 0}
+                          onChange={(e) => handleGridChange(p.id, "stockLineOa", parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
+                      </td>
+
+                      {/* ช่องทางรวม (channel total) */}
+                      <td className="px-3 py-2 text-right">
+                        <span className="text-xs font-bold text-emerald-700">
+                          {formatCurrency((p.stockTiktok ?? 0) + (p.stockShopee ?? 0) + (p.stockLineOa ?? 0))}
+                        </span>
                       </td>
 
                       {/* จุดเตือน */}

@@ -16,6 +16,11 @@ export const productSchema = z.object({
   isActive: z.boolean().default(true),
   tiers: z.array(productTierSchema).optional(),
 
+  // Per-channel stock (additive)
+  stockTiktok: z.number().min(0, "สต็อกต้องไม่ติดลบ").default(0),
+  stockShopee: z.number().min(0, "สต็อกต้องไม่ติดลบ").default(0),
+  stockLineOa: z.number().min(0, "สต็อกต้องไม่ติดลบ").default(0),
+
   // Inventory breakdown validation
   pastedBoxes: z.number().int().min(0).default(0),
   pastedBags: z.number().int().min(0).default(0),

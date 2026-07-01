@@ -24,6 +24,8 @@ export default async function DashboardPage() {
     recentBillings,
     recentReceipts,
     lowStockProducts,
+    channelAgg,
+    channelProducts,
   ] = await Promise.all([
     prisma.quotation.groupBy({
       by: ["status"],
@@ -85,7 +87,22 @@ export default async function DashboardPage() {
       orderBy: { stockQuantity: "asc" },
       take: 10,
     }),
+    prisma.product.aggregate({
+      where: { isActive: true },
+      _sum: { stockTiktok: true, stockShopee: true, stockLineOa: true },
+    }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { nameTh: "asc" },
+      select: { id: true, nameTh: true, unit: true, stockTiktok: true, stockShopee: true, stockLineOa: true },
+    }),
   ]);
+
+  const tiktokTotal = channelAgg._sum.stockTiktok ?? 0;
+  const shopeeTotal = channelAgg._sum.stockShopee ?? 0;
+  const lineOaTotal = channelAgg._sum.stockLineOa ?? 0;
+  const channelGrandTotal = tiktokTotal + shopeeTotal + lineOaTotal;
+  const pct = (n: number) => (channelGrandTotal > 0 ? (n / channelGrandTotal) * 100 : 0);
 
   const qtStats = {
     total: qtCountsByStatus.reduce((sum, item) => sum + item._count, 0),
@@ -169,6 +186,85 @@ export default async function DashboardPage() {
           <p className="text-xs text-gray-500 mb-1">ยอดอนุมัติเดือนนี้</p>
           <p className="text-xl font-bold text-green-700">฿{formatCurrency(acceptedTotal)}</p>
           <p className="text-sm text-gray-400 mt-1">ใบเสนอราคา ACCEPTED</p>
+        </div>
+      </div>
+
+      {/* Channel stock monitoring */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-800">สต็อกแยกตามช่องทาง / Stock by Channel</h3>
+          <Link href="/products" className="text-xs font-medium text-green-600 hover:underline">จัดการสต็อก →</Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="https://cdn.simpleicons.org/tiktok/010101" alt="TikTok" width={18} height={18} />
+              TikTok
+            </div>
+            <p className="text-2xl font-bold text-gray-800 mt-1">{formatCurrency(tiktokTotal)}</p>
+          </div>
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="https://cdn.simpleicons.org/shopee/EE4D2D" alt="Shopee" width={18} height={18} />
+              Shopee
+            </div>
+            <p className="text-2xl font-bold text-gray-800 mt-1">{formatCurrency(shopeeTotal)}</p>
+          </div>
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="https://cdn.simpleicons.org/line/06C755" alt="LINE OA" width={18} height={18} />
+              LINE OA
+            </div>
+            <p className="text-2xl font-bold text-gray-800 mt-1">{formatCurrency(lineOaTotal)}</p>
+          </div>
+          <div className="border border-emerald-200 bg-emerald-50/40 rounded-lg p-4">
+            <p className="text-xs text-emerald-700">รวมทุกช่องทาง / Total</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(channelGrandTotal)}</p>
+          </div>
+        </div>
+
+        {/* Channel share bar */}
+        {channelGrandTotal > 0 && (
+          <div className="mb-4">
+            <p className="text-xs text-gray-400 mb-1">สัดส่วนช่องทาง / Channel share</p>
+            <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100">
+              <span style={{ width: `${pct(tiktokTotal)}%`, backgroundColor: "#010101" }} />
+              <span style={{ width: `${pct(shopeeTotal)}%`, backgroundColor: "#EE4D2D" }} />
+              <span style={{ width: `${pct(lineOaTotal)}%`, backgroundColor: "#06C755" }} />
+            </div>
+          </div>
+        )}
+
+        {/* Per-product breakdown */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-3 py-2 font-bold text-gray-700 text-xs">สินค้า</th>
+                <th className="text-right px-3 py-2 font-bold text-gray-700 text-xs w-24">TikTok</th>
+                <th className="text-right px-3 py-2 font-bold text-gray-700 text-xs w-24">Shopee</th>
+                <th className="text-right px-3 py-2 font-bold text-gray-700 text-xs w-24">LINE OA</th>
+                <th className="text-right px-3 py-2 font-bold text-emerald-700 text-xs w-24">รวม</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {channelProducts.map((p) => {
+                const total = (p.stockTiktok ?? 0) + (p.stockShopee ?? 0) + (p.stockLineOa ?? 0);
+                return (
+                  <tr key={p.id} className="hover:bg-gray-50/50">
+                    <td className="px-3 py-2 text-gray-800 font-medium">{p.nameTh}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(p.stockTiktok ?? 0)}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(p.stockShopee ?? 0)}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(p.stockLineOa ?? 0)}</td>
+                    <td className="px-3 py-2 text-right font-bold text-emerald-700">{formatCurrency(total)} {p.unit}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

@@ -31,7 +31,12 @@ model Product {
   stockQuantity  Float           @default(0)
   lowStockThreshold Float        @default(0)
   isActive       Boolean         @default(true)
-  
+
+  // Per-channel stock (additive; channel total = sum of the three)
+  stockTiktok    Float           @default(0)
+  stockShopee    Float           @default(0)
+  stockLineOa    Float           @default(0)
+
   // Inventory breakdown fields for stock grid
   pastedBoxes       Int          @default(0)
   pastedBags        Int          @default(0)
