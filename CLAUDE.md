@@ -43,6 +43,7 @@ Each conversion copies all line items (sorted by `sortOrder`) and customer data,
 - Prisma singleton: `src/lib/db.ts`
 - Auto-numbering sequences: `QTSequence`, `INVSequence`, `BNSequence`, `RCSequence` — one row per year, managed by `src/lib/qt-number.ts`, `inv-number.ts`, `bn-number.ts`, `rc-number.ts`
 - Indexes on `status`, `createdById`, `createdAt` for Quotation, Invoice, Billing, Receipt
+- **Product channel stock:** `stockTiktok`, `stockShopee`, `stockLineOa` (Float) are additive fields on `Product`; channel total = their sum. Independent from `stockQuantity` (which stays boba-packing-derived). Edited via a dedicated section in `ProductsClient.tsx` with its own save; surfaced on the dashboard "Stock by Channel" section. New columns must be added to both `dev.db` and Turso via manual `ALTER TABLE` (see migration workaround above).
 
 ### API routes pattern
 All routes in `src/app/api/` follow this structure:

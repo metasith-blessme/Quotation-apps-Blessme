@@ -22,6 +22,19 @@ Full-featured document management system for Quotations, Invoices, Billing Notes
 
 ## Changelog
 
+### July 1, 2026 — Per-Channel Stock & Monitoring
+- **Channel Stock Fields:** Added `stockTiktok`, `stockShopee`, `stockLineOa` to the `Product` model (additive — the existing `stockQuantity` / boba packing logic is untouched). Channel total = sum of the three.
+- **Migration & Backfill:** Applied `ALTER TABLE Product ADD COLUMN` on both local `dev.db` and production Turso; backfilled existing `stockQuantity` into the TikTok channel so nothing zeroed out.
+- **Dedicated Editing Section:** Products page now has a separate "สต็อกแยกช่องทาง / Channel Stock" table with its own dirty-state and "บันทึกช่องทาง" Save button — fully independent from the packing stock grid. ADMIN edits inline, SALES read-only.
+- **Dashboard Monitoring:** Added a "Stock by Channel" section — per-channel KPI cards, a channel-share bar, and a per-product breakdown table. Uses real TikTok/Shopee/LINE brand logos via `cdn.simpleicons.org` (no emoji, no stored assets).
+- **Verified:** `typecheck`, `lint` (no new issues), and `build` all green. Deployed to Vercel production.
+
+### July 1, 2026 — Codebase Cleanup
+- **Dead Code Removal:** Deleted unused `STATUS_LABELS` constants from 4 list clients (Billings, Dashboard, Invoices, Receipts) and the unused `counts` prop in `DeliveriesClient`.
+- **Debug Log Strip:** Removed 7 informational `console.log` calls from cascade sync paths (`document-lifecycle.ts` and 3 document PATCH routes); kept all `console.error` error handling.
+- **Repo Hygiene:** Removed untracked scratch artifacts (`plan.html`, `plan.json`, `scratch/`).
+- **Verified:** `npm run typecheck`, `npm run lint` (warnings 5→0), and `npm run build` all green. Deployed to Vercel production.
+
 ### June 17, 2026 — Inline Interactive Status Toggles & Navigation Fix
 - **Inline Status Dropdowns**: Implemented instant status select dropdown toggles across all listing pages (Quotations, Invoices, Billings, Receipts, Deliveries) and the Homepage Dashboard, enabling status changes without navigating.
 - **Styled Chevron Affordance**: Wrapped all dropdown selectors in a relative container with a trailing absolute chevron (`▼`) to provide a clear interactive affordance, distinguishing them from static text badges.
