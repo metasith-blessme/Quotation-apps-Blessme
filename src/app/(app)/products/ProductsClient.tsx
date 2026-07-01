@@ -75,6 +75,11 @@ export default function ProductsClient({
   const [savingStock, setSavingStock] = useState(false);
   const [stockSaveSuccess, setStockSaveSuccess] = useState(false);
 
+  // Channel stock state (independent from the packing grid above)
+  const [channelDirty, setChannelDirty] = useState<Record<string, boolean>>({});
+  const [savingChannels, setSavingChannels] = useState(false);
+  const [channelSaveSuccess, setChannelSaveSuccess] = useState(false);
+
   const isAdmin = userRole === "ADMIN";
 
   // ─── Boba detection ──────────────────────────────────────
@@ -151,6 +156,79 @@ export default function ProductsClient({
   };
 
   const hasDirtyProducts = Object.values(dirtyProducts).some((v) => v);
+  const hasDirtyChannels = Object.values(channelDirty).some((v) => v);
+
+  // ─── Channel stock inline editing (separate save) ────────
+  const handleChannelChange = (
+    productId: string,
+    field: "stockTiktok" | "stockShopee" | "stockLineOa",
+    value: number
+  ) => {
+    if (!isAdmin) return;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, [field]: value } : p))
+    );
+    setChannelDirty((prev) => ({ ...prev, [productId]: true }));
+  };
+
+  const saveChannels = async () => {
+    if (!isAdmin) return;
+    setSavingChannels(true);
+    setError("");
+    try {
+      const dirtyIds = Object.keys(channelDirty).filter((id) => channelDirty[id]);
+      if (dirtyIds.length === 0) { setSavingChannels(false); return; }
+
+      const promises = dirtyIds.map(async (id) => {
+        const p = products.find((prod) => prod.id === id);
+        if (!p) return;
+        const res = await fetch(`/api/products/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nameTh: p.nameTh,
+            nameEn: p.nameEn,
+            unit: p.unit,
+            pricePerUnit: p.pricePerUnit,
+            lowStockThreshold: p.lowStockThreshold,
+            isActive: p.isActive,
+            tiers: p.tiers ?? [],
+            stockTiktok: p.stockTiktok ?? 0,
+            stockShopee: p.stockShopee ?? 0,
+            stockLineOa: p.stockLineOa ?? 0,
+            pastedBoxes: p.pastedBoxes,
+            pastedBags: p.pastedBags,
+            unpackedBoxes: p.unpackedBoxes,
+            unpackedBags: p.unpackedBags,
+            chineseLabelBoxes: p.chineseLabelBoxes,
+            pack1: p.pack1,
+            pack2: p.pack2,
+            pack3: p.pack3,
+          }),
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error?.message || `ไม่สามารถบันทึกช่องทางของ ${p.nameTh} ได้`);
+        }
+        return res.json();
+      });
+
+      const updated = await Promise.all(promises);
+      setProducts((prev) =>
+        prev.map((p) => {
+          const u = updated.find((up) => up && up.id === p.id);
+          return u ? u : p;
+        })
+      );
+      setChannelDirty({});
+      setChannelSaveSuccess(true);
+      setTimeout(() => setChannelSaveSuccess(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกช่องทาง");
+    } finally {
+      setSavingChannels(false);
+    }
+  };
 
   const saveStockGrid = async () => {
     if (!isAdmin) return;
@@ -633,6 +711,83 @@ export default function ProductsClient({
         </div>
       </div>
 
+      {/* ─── Channel Stock (separate section + save) ────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">สต็อกแยกช่องทาง / Channel Stock</h3>
+            <p className="text-[11px] text-gray-400">TikTok + Shopee + LINE OA (แยกจากสต็อกด้านบน)</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {channelSaveSuccess && (
+              <span className="text-[11px] text-green-600 font-semibold">บันทึกช่องทางแล้ว</span>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={saveChannels}
+                disabled={savingChannels || !hasDirtyChannels}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  hasDirtyChannels
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                }`}
+              >
+                {savingChannels ? "กำลังบันทึก..." : "บันทึกช่องทาง"}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-3 py-2.5 font-bold text-gray-700 text-xs">ชื่อสินค้า</th>
+                <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://cdn.simpleicons.org/tiktok/010101" alt="TikTok" width={14} height={14} className="inline-block align-middle mr-1" /> TikTok
+                </th>
+                <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://cdn.simpleicons.org/shopee/EE4D2D" alt="Shopee" width={14} height={14} className="inline-block align-middle mr-1" /> Shopee
+                </th>
+                <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://cdn.simpleicons.org/line/06C755" alt="LINE OA" width={14} height={14} className="inline-block align-middle mr-1" /> LINE OA
+                </th>
+                <th className="text-right px-3 py-2.5 font-bold text-emerald-700 text-xs w-24">รวม</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {sortedProducts.map((p) => {
+                const channelTotal = (p.stockTiktok ?? 0) + (p.stockShopee ?? 0) + (p.stockLineOa ?? 0);
+                const channelFields: ("stockTiktok" | "stockShopee" | "stockLineOa")[] = ["stockTiktok", "stockShopee", "stockLineOa"];
+                return (
+                  <tr key={p.id} className="hover:bg-gray-50/30 transition-colors">
+                    <td className="px-3 py-2 text-gray-800 font-medium">{p.nameTh}</td>
+                    {channelFields.map((field) => (
+                      <td key={field} className="px-3 py-2">
+                        {isAdmin ? (
+                          <input type="number" min="0"
+                            value={p[field] ?? 0}
+                            onChange={(e) => handleChannelChange(p.id, field, parseFloat(e.target.value) || 0)}
+                            className="w-24 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
+                        ) : (
+                          <span className="block text-right text-gray-700">{formatCurrency(p[field] ?? 0)}</span>
+                        )}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right font-bold text-emerald-700">
+                      {formatCurrency(channelTotal)} {p.unit}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* ─── Product Add/Edit Form (Collapsible, Admin only) ── */}
       {isAdmin && showForm && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
@@ -850,10 +1005,6 @@ export default function ProductsClient({
                   <th className="text-center px-3 py-2.5 font-bold text-gray-700 text-xs w-20">หน่วย</th>
                   <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">ราคา/หน่วย</th>
                   <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">สต็อกรวม</th>
-                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-24">TikTok</th>
-                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-24">Shopee</th>
-                  <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-24">LINE OA</th>
-                  <th className="text-right px-3 py-2.5 font-bold text-emerald-700 text-xs w-24">ช่องทางรวม</th>
                   <th className="text-right px-3 py-2.5 font-bold text-gray-700 text-xs w-28">จุดเตือน</th>
                   <th className="text-center px-3 py-2.5 font-bold text-gray-700 text-xs w-20">Tiers</th>
                 </tr>
@@ -947,37 +1098,6 @@ export default function ProductsClient({
                             />
                           </div>
                         )}
-                      </td>
-
-                      {/* TikTok */}
-                      <td className="px-3 py-2">
-                        <input type="number" min="0"
-                          value={p.stockTiktok ?? 0}
-                          onChange={(e) => handleGridChange(p.id, "stockTiktok", parseFloat(e.target.value) || 0)}
-                          className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
-                      </td>
-
-                      {/* Shopee */}
-                      <td className="px-3 py-2">
-                        <input type="number" min="0"
-                          value={p.stockShopee ?? 0}
-                          onChange={(e) => handleGridChange(p.id, "stockShopee", parseFloat(e.target.value) || 0)}
-                          className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
-                      </td>
-
-                      {/* LINE OA */}
-                      <td className="px-3 py-2">
-                        <input type="number" min="0"
-                          value={p.stockLineOa ?? 0}
-                          onChange={(e) => handleGridChange(p.id, "stockLineOa", parseFloat(e.target.value) || 0)}
-                          className="w-20 text-right px-2 py-1 border border-gray-200 rounded text-xs font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-gray-50/20 hover:bg-white focus:bg-white text-gray-800 transition-all" />
-                      </td>
-
-                      {/* ช่องทางรวม (channel total) */}
-                      <td className="px-3 py-2 text-right">
-                        <span className="text-xs font-bold text-emerald-700">
-                          {formatCurrency((p.stockTiktok ?? 0) + (p.stockShopee ?? 0) + (p.stockLineOa ?? 0))}
-                        </span>
                       </td>
 
                       {/* จุดเตือน */}
